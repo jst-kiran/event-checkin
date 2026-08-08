@@ -1,0 +1,55 @@
+{
+  "snapshotVersion": "2026-08-15",
+  "generatedAt": "2026-08-15T10:00:00.000Z",
+  "totalRegistrations": 6,
+  "attendees": [
+    {
+      "name": "John Doe",
+      "email": "john@example.com",
+      "organization": "ABC Corp",
+      "designation": "Developer",
+      "phone": "9999999999",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "Priya Sharma",
+      "email": "priya@example.com",
+      "organization": "Tableau User Group",
+      "designation": "Analyst",
+      "phone": "8888888888",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Alex Chen",
+      "email": "alex@example.com",
+      "organization": "Data Co",
+      "designation": "Engineer",
+      "phone": "7777777777",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Sam Patel",
+      "email": "sam@example.com",
+      "organization": "",
+      "designation": "",
+      "phone": "",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "Riya Nair",
+      "email": "riya@example.com",
+      "organization": "University of Somewhere",
+      "designation": "Student",
+      "phone": "6666666666",
+      "mealPreference": ""
+    },
+    {
+      "name": "Dana Cruz",
+      "email": "dana@example.com",
+      "organization": "Freelance",
+      "designation": "Consultant",
+      "phone": "5555555555",
+      "mealPreference": "Veg Meal"
+    }
+  ]
+}

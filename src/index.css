@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    /* The desk screens are all-white cards on a tinted page; keep both themes
+       consistent rather than letting the browser invert form controls. */
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+      Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* iOS zooms the page when a focused input is under 16px. At a check-in desk
+     that reads as the app breaking, so the email field never goes below it. */
+  input {
+    font-size: 16px;
+  }
+
+  /* A visible focus ring is what makes the desk usable from the keyboard —
+     operators tab through this all day. */
+  :focus-visible {
+    outline: 2px solid theme('colors.brand.600');
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Slim scrollbar for the admin table on narrow screens. */
+  .table-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+  .table-scroll::-webkit-scrollbar-thumb {
+    background: #ddd6fe;
+    border-radius: 999px;
+  }
+}

@@ -1,0 +1,471 @@
+{
+  "snapshotVersion": "2026-08-08",
+  "generatedAt": "2026-08-08T15:21:04.637Z",
+  "totalRegistrations": 58,
+  "attendees": [
+    {
+      "name": "Satyam Kadavla",
+      "email": "satyamkadavla19@gmail.com",
+      "organization": "JG University",
+      "designation": "Data analyst and quality control @OnBase / student",
+      "phone": "7359031135",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Kadavla Shivam Rajendra",
+      "email": "shivamkadavla37@gmail.com",
+      "organization": "Indus University",
+      "designation": "Student",
+      "phone": "6359251915",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Hemal Mistry",
+      "email": "mistryhemal25@gmail.com",
+      "organization": "JG University",
+      "designation": "Student [IMSc(IT)]",
+      "phone": "9726017580",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Janvi Panchal",
+      "email": "janvipanchal2106@gmail.com",
+      "organization": "JG UNIVERSITY",
+      "designation": "Student",
+      "phone": "7600112106",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Mehta Het Daxeshkumar",
+      "email": "hetm85257@gmail.com",
+      "organization": "J.G. University",
+      "designation": "Student",
+      "phone": "9157138711",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "Vansh Shukla",
+      "email": "vanshtshukla@gmail.com",
+      "organization": "L.d college of engineering",
+      "designation": "Student",
+      "phone": "",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Bhavsar Daksh Narendrabhai",
+      "email": "www.dakshbhavsar3699@gmail.com",
+      "organization": "LJ university",
+      "designation": "Student",
+      "phone": "8849538117",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Amish Garg",
+      "email": "amishgarg121@gmail.com",
+      "organization": "Queen's University Belfast, GIFT City Campus",
+      "designation": "Student",
+      "phone": "7990592845",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Anushree T",
+      "email": "anushreetripathi30@gmail.com",
+      "organization": "Gujarat University",
+      "designation": "Student",
+      "phone": "07862824338",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Dev Bhavsar",
+      "email": "devbhavsar2712@gmail.com",
+      "organization": "L.D. college Of engineering",
+      "designation": "Computer Engineering",
+      "phone": "7435952966",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Banti Mathur",
+      "email": "bmathur2@gmail.com",
+      "organization": "Gwalior Infotech",
+      "designation": "Software Developer",
+      "phone": "9510016779",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Maitri Parmar",
+      "email": "parmarmaitry72@gmail.com",
+      "organization": "CPC , GUJARAT UNIVERSITY",
+      "designation": "Student",
+      "phone": "07622984758",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Suthar Kiran",
+      "email": "kiransuthar7874@gmail.com",
+      "organization": "Silver oak university",
+      "designation": "Student",
+      "phone": "9016093615",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Shrey Hirakani",
+      "email": "hirakanishrey@gmail.com",
+      "organization": "Jg university",
+      "designation": "Students",
+      "phone": "9510760969",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Mistry Yaksh",
+      "email": "yakshsuthar3412@gmail.com",
+      "organization": "JG University",
+      "designation": "Student",
+      "phone": "7567985242",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Dhandhukiya Krupali",
+      "email": "krupalidhandhukiya1210@gmail.com",
+      "organization": "SAL engineering and technical institute",
+      "designation": "Student",
+      "phone": "9429201233",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "VRUND UPADHYAY",
+      "email": "2201030600030@silveroakuni.ac.in",
+      "organization": "Silver Oak University",
+      "designation": "AI-ML full stack product development intern",
+      "phone": "9978803941",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Dharin Pandya",
+      "email": "pandyadharin516@gmail.com",
+      "organization": "Indus University",
+      "designation": "Student",
+      "phone": "7874253900",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Patel Prathmesh",
+      "email": "prathmeshpatel24816.p@gmail.com",
+      "organization": "Silver oak college of engineering and technology",
+      "designation": "Student",
+      "phone": "7623886367",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Fenil Mevada",
+      "email": "fmevada86@gmail.com",
+      "organization": "GTU",
+      "designation": "Student",
+      "phone": "9714824652",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "yuvraj",
+      "email": "rajyuvi030@gmail.com",
+      "organization": "lj",
+      "designation": "Student",
+      "phone": "9328718161",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Jayram Nai",
+      "email": "jramnai007@gmail.com",
+      "organization": "Accenture",
+      "designation": "Software Development Team Lead",
+      "phone": "",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "deepanshu moorjani",
+      "email": "deepanshu.moorjani20@gmail.com",
+      "organization": "queens university belfast",
+      "designation": "student",
+      "phone": "6350124004",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "nikhil saraf",
+      "email": "nikhilsaraf76@gmail.com",
+      "organization": "queens university belfast",
+      "designation": "student",
+      "phone": "9662176745",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "brijesh sharma",
+      "email": "bs2102002@gmail.com",
+      "organization": "queens university belfast",
+      "designation": "student",
+      "phone": "9680684375",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "DIVYOM CHAPANERA",
+      "email": "codendebug7@gmail.com",
+      "organization": "LJIET, LJ university",
+      "designation": "Student",
+      "phone": "8320789644",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Khush Thobhani",
+      "email": "khush27112006@gmail.com",
+      "organization": "Indus University",
+      "designation": "Student",
+      "phone": "9265710057",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Rohan Shah",
+      "email": "40499309@ads.qub.ac.uk",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "9409401990",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "Rani Choudhary",
+      "email": "40527216@ads.qub.ac.uk",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "+91 9179295093",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Shreyash Prajapati",
+      "email": "40462704@ads.qub.ac.uk",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "9924817747",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Suvidha Agarwal",
+      "email": "sagarwal02@qub.ac.uk",
+      "organization": "Queens’ University Belfast",
+      "designation": "Student",
+      "phone": "8826669350",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "Surabhi Roy Chowdhury",
+      "email": "surabhi0726@gmail.com",
+      "organization": "The Queen's University of Belfast",
+      "designation": "student",
+      "phone": "",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Yashodhan",
+      "email": "yraga01@qub.ac.uk",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "7719076129",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "SAI KUMAR DUKKA",
+      "email": "sdukka01@qub.ac.uk",
+      "organization": "Queen's University Belfast",
+      "designation": "Course Representative",
+      "phone": "",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Khushi Soni",
+      "email": "sonikhushi0999@gmail.com",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "9216764261",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Samriddhi Soni",
+      "email": "40529135@ads.qub.ac.uk",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "9329224315",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "Sourabh purohit",
+      "email": "spurohit02@qub.ac.uk",
+      "organization": "Queens University Belfast, Gift city",
+      "designation": "Student",
+      "phone": "7898338899",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Akash Kumar Gupta",
+      "email": "40528578@ads.qub.ac.uk",
+      "organization": "Queen’s University Belfast",
+      "designation": "Student",
+      "phone": "9931983299",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "HENIL SHALIN PANCHAL",
+      "email": "henilp105@gmail.com",
+      "organization": "Queens University Belfast GIFT City Campus",
+      "designation": "Msc Financial Analytics student at Queens University Belfast",
+      "phone": "9054853880",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Ram S. Khanna",
+      "email": "ramkhanna767@gmail.com",
+      "organization": "QUB, GIFT CITY",
+      "designation": "Director",
+      "phone": "8849244516",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "CHINDUKURU NAGA SAI SREEDHAR",
+      "email": "40528371@ads.qub.ac.uk",
+      "organization": "Queens University Belfast, Gift City",
+      "designation": "Student, MSC Business Analytics",
+      "phone": "9182937061",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Amrita Kumari",
+      "email": "akumari01@qub.ac.uk",
+      "organization": "Queen's University Belfast, Gift City",
+      "designation": "Student",
+      "phone": "8586026430",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Mayur Kikani",
+      "email": "40529150@qub.ac.uk",
+      "organization": "Queens university belfast, Gift City",
+      "designation": "Student",
+      "phone": "7567127550",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Harshil Patadia",
+      "email": "harshilpatadiya8@gmail.com",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "9662982310",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Sweta Gupta",
+      "email": "sg050459@gmail.com",
+      "organization": "Queen's University Belfast, Gift City Campus",
+      "designation": "Student",
+      "phone": "7060574113",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Nisarg Vadukar",
+      "email": "nisarg.vadukar@gmail.com",
+      "organization": "Queens University",
+      "designation": "Student BA",
+      "phone": "",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Medhansh Shinde",
+      "email": "medhanshshinde29@gmail.com",
+      "organization": "Queens University Belfast",
+      "designation": "Student",
+      "phone": "9324425807",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Hemang D Kalsariya",
+      "email": "hkalsariya01@qub.ac.uk",
+      "organization": "Queens University Belfast",
+      "designation": "Student",
+      "phone": "9510397367",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Nirmit Dave",
+      "email": "davenirmit00@gmail.com",
+      "organization": "Queens University",
+      "designation": "Student",
+      "phone": "9601276861",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Parth Girgilani",
+      "email": "girgilani17@gmail.com",
+      "organization": "GLS University",
+      "designation": "Data Analyst intern",
+      "phone": "9106335033",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Bhavya rajyaguru",
+      "email": "brajyaguru01@qub.ac.uk",
+      "organization": "Queen's university belfast",
+      "designation": "Student",
+      "phone": "6358850104",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Navmi Mahadevan",
+      "email": "40527233@ads.qub.ac.uk",
+      "organization": "Queen's University Belfast GIFT CITY Campus",
+      "designation": "Student",
+      "phone": "9496898913",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Nayan Grover",
+      "email": "ngrover02@qub.ac.uk",
+      "organization": "Queen's University Belfast-Gift City",
+      "designation": "Student",
+      "phone": "+91-7888401738",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Purvi Mahajan",
+      "email": "purvi555mahajan@gmail.com",
+      "organization": "Queens University Belfast, GIFT city",
+      "designation": "student",
+      "phone": "+91-9855520235",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Amjad Khan Mohammed",
+      "email": "amohammed06@qub.ac.uk",
+      "organization": "Queen's University Belfast (Gift City)",
+      "designation": "Student - Course Representative",
+      "phone": "7207984900",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Kalyani Nilkanth Thange",
+      "email": "kthange01@qub.ac.uk",
+      "organization": "Queen's University Belfast Gift City",
+      "designation": "Msc in Business Analytics",
+      "phone": "9356949792",
+      "mealPreference": "Jain Veg Meal"
+    },
+    {
+      "name": "Janvi Solanki",
+      "email": "janvisolanki0501@gmail.com",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "9054121317",
+      "mealPreference": "Veg Meal"
+    },
+    {
+      "name": "Nancy Dhaduk",
+      "email": "ndhaduk01@qub.ac.uk",
+      "organization": "Queen's University Belfast",
+      "designation": "Student",
+      "phone": "7984370339",
+      "mealPreference": "Veg Meal"
+    }
+  ]
+}
