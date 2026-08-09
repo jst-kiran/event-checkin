@@ -6,8 +6,9 @@ import {
   normalizeHeader,
   mapHeaders,
   cellFor,
-  mealKey,
-  mealLabel,
+  mealGroup,
+  mealGroupLabel,
+  normalizeName,
   text,
 } from '../api/_lib/normalize.js';
 
@@ -147,22 +148,48 @@ test('text flattens whitespace a form export leaves behind', () => {
   assert.equal(text(42), '42');
 });
 
-test('mealKey groups every spelling of Jain together', () => {
+test('mealGroup treats every spelling of Jain as Jain', () => {
   for (const meal of ['Jain', 'jain veg meal', 'JAIN MEAL', ' Jain Veg ']) {
-    assert.equal(mealKey(meal), 'jain', `failed for ${meal}`);
+    assert.equal(mealGroup(meal), 'jain', `failed for ${meal}`);
   }
 });
 
-test('mealKey keeps other preferences distinct instead of inventing categories', () => {
-  assert.equal(mealKey('Veg Meal'), 'veg meal');
-  assert.equal(mealKey('Non-Veg'), 'non-veg');
-  assert.equal(mealKey('Vegan'), 'vegan');
-  assert.equal(mealKey(''), '');
-  assert.equal(mealKey(null), '');
+test('mealGroup puts everything else, including a blank, in Veg', () => {
+  // Only two groups exist, so the counts always sum to the number of claims —
+  // a third bucket would be a meal nobody can serve.
+  for (const meal of ['Veg Meal', 'veg', '', null, undefined, 'Anything Else']) {
+    assert.equal(mealGroup(meal), 'veg', `failed for ${JSON.stringify(meal)}`);
+  }
 });
 
-test('mealLabel title-cases for display', () => {
-  assert.equal(mealLabel('jain veg meal'), 'Jain Veg Meal');
-  assert.equal(mealLabel('  VEG  '), 'VEG');
-  assert.equal(mealLabel(''), '');
+test('mealGroupLabel renders exactly Jain and Veg', () => {
+  assert.equal(mealGroupLabel('jain'), 'Jain');
+  assert.equal(mealGroupLabel('veg'), 'Veg');
+});
+
+test('normalizeName ignores case and stray whitespace', () => {
+  const expected = 'rahul patel';
+  for (const typed of ['Rahul Patel', ' rahul patel ', 'RAHUL PATEL', 'Rahul   Patel']) {
+    assert.equal(normalizeName(typed), expected, `failed for ${JSON.stringify(typed)}`);
+  }
+});
+
+test('normalizeName keeps genuinely different names apart', () => {
+  assert.notEqual(normalizeName('Sam Patel'), normalizeName('Sam Patil'));
+  assert.equal(normalizeName(''), '');
+});
+
+test('project sheet headers resolve by meaning', () => {
+  const map = mapHeaders(['Timestamp', 'Team Name', 'Google Drive Link', 'Submission Status']);
+  assert.equal(map.timestamp, 0);
+  assert.equal(map.teamName, 1);
+  assert.equal(map.driveLink, 2);
+  assert.equal(map.submissionStatus, 3);
+});
+
+test('project sheet headers tolerate shorter spellings', () => {
+  const map = mapHeaders(['Team', 'Drive Link', 'Status']);
+  assert.equal(map.teamName, 0);
+  assert.equal(map.driveLink, 1);
+  assert.equal(map.submissionStatus, 2);
 });

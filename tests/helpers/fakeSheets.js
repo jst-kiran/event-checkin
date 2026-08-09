@@ -11,7 +11,7 @@
  * the in-process email lock deliberately prevents from happening any other way.
  */
 
-import { columnLetter } from '../../api/_lib/googleSheets.js';
+import { columnLetter, SheetsError } from '../../api/_lib/googleSheets.js';
 
 function parseA1(range) {
   const match = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(range);
@@ -33,12 +33,18 @@ export function createFakeSheets(initial = {}) {
     Object.entries(initial).map(([name, rows]) => [name, rows.map((row) => [...row])])
   );
 
-  const calls = { get: 0, append: 0, update: 0 };
+  const calls = { get: 0, append: 0, update: 0, ensure: 0 };
   let failure = null;
   let onBeforeAppend = null;
 
+  // Tabs that must behave as genuinely absent until ensureSheetExists creates
+  // them — reading one throws the way Google does, which is what lets the
+  // "missing ProjectUploads tab" path be exercised.
+  const missing = new Set();
+
   function rowsFor(name) {
     if (!tabs.has(name)) tabs.set(name, []);
+    missing.delete(name);
     return tabs.get(name);
   }
 
@@ -56,6 +62,15 @@ export function createFakeSheets(initial = {}) {
     async getSheetValues(name) {
       calls.get++;
       maybeFail('get');
+
+      if (missing.has(name)) {
+        // Google reports an absent tab as a 400 on range parsing, not a 404.
+        throw new SheetsError(
+          `Sheets API GET /values/${name} failed (HTTP 400): Unable to parse range: ${name}`,
+          { httpStatus: 400 }
+        );
+      }
+
       // Deep copy: a caller must not be able to mutate the "spreadsheet".
       return rowsFor(name).map((row) => [...row]);
     },
@@ -78,6 +93,12 @@ export function createFakeSheets(initial = {}) {
         rowNumber,
         updatedRange: `${name}!A${rowNumber}:${columnLetter(values.length - 1)}${rowNumber}`,
       };
+    },
+
+    async ensureSheetExists(name) {
+      calls.ensure++;
+      maybeFail('ensure');
+      rowsFor(name); // creating the tab is exactly "make it exist and be empty"
     },
 
     async updateSheetValues(name, range, values) {
@@ -115,6 +136,15 @@ export function createFakeSheets(initial = {}) {
     /** Runs once, inside the next append, before the row is written. */
     beforeNextAppend(hook) {
       onBeforeAppend = hook;
+    },
+    /** Makes a tab behave as though it does not exist in the spreadsheet. */
+    markMissing(name) {
+      tabs.delete(name);
+      missing.add(name);
+    },
+    /** True once the tab has been created (or written to). */
+    exists(name) {
+      return tabs.has(name) && !missing.has(name);
     },
   };
 }

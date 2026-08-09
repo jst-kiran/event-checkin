@@ -69,5 +69,15 @@ export const api = {
 
   stats: () => request('/api/admin/stats'),
   checkIns: () => request('/api/admin/checkins'),
-  teams: (count) => request(`/api/admin/teams?teams=${encodeURIComponent(count)}`),
+  projects: () => request('/api/admin/projects'),
+
+  /**
+   * @param {number} size members per team
+   * @param {string[]} [ignore] names to leave out of this draw only
+   */
+  teams: (size, ignore = []) => {
+    const params = new URLSearchParams({ size: String(size) })
+    if (ignore.length) params.set('ignore', ignore.join(','))
+    return request(`/api/admin/teams?${params}`)
+  },
 }

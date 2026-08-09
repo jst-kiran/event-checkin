@@ -79,16 +79,6 @@ test('publicAttendee withholds phone and designation', async () => {
   assert.equal(publicAttendee(null), null);
 });
 
-test('meal categories are derived from the data, not hardcoded', async () => {
-  const { getMealCategories } = await loadWith(FIXTURE);
-  const categories = getMealCategories();
-
-  assert.equal(categories.get('jain'), 'Jain');
-  assert.equal(categories.get('veg meal'), 'Veg Meal');
-  // Riya has no stated preference; that is not a category.
-  assert.equal(categories.size, 2);
-});
-
 test('a bare array snapshot loads too', async () => {
   const file = writeTemp([{ name: 'Solo', email: 'Solo@Example.com' }]);
   const { findRegistrationByEmail, getSnapshotInfo } = await loadWith(file);

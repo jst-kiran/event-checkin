@@ -323,6 +323,43 @@ export async function updateSheetValues(sheetName, a1Range, values) {
   });
 }
 
+/**
+ * True when an error means "that tab does not exist", as opposed to any other
+ * failure. Google reports a missing tab as a 400 on range parsing rather than
+ * a 404, so the message is the only signal available.
+ */
+export function isMissingSheetError(error) {
+  return (
+    error?.name === 'SheetsError' &&
+    error.httpStatus === 400 &&
+    /unable to parse range/i.test(error.message)
+  );
+}
+
+/**
+ * Creates a tab if it is not already there.
+ *
+ * This is the only code path in the project that changes the *structure* of
+ * the spreadsheet, so it is deliberately narrow: it is called only after a
+ * read has already failed with "no such tab", it adds nothing but an empty
+ * sheet, and it never touches Registrations, CheckIn or Lunch.
+ *
+ * Idempotent. Two functions racing to create the same tab both succeed —
+ * Google rejects the loser with "already exists", which is the desired end
+ * state and is therefore swallowed.
+ */
+export async function ensureSheetExists(sheetName) {
+  try {
+    await sheetsRequest(':batchUpdate', {
+      method: 'POST',
+      body: { requests: [{ addSheet: { properties: { title: sheetName } } }] },
+    });
+  } catch (error) {
+    if (error?.name === 'SheetsError' && /already exists/i.test(error.message)) return;
+    throw error;
+  }
+}
+
 /** Sheet titles can contain spaces and apostrophes; both need quoting in A1. */
 function quoteSheetName(name) {
   return `'${String(name).replace(/'/g, "''")}'`;
@@ -347,13 +384,14 @@ export function columnLetter(index) {
 
 /**
  * The port every consumer depends on. Tests pass a fake object with the same
- * three methods, which is what lets the whole check-in and lunch flow be
- * exercised without a network or a Google project.
+ * methods, which is what lets the whole check-in, lunch and project-upload
+ * flow be exercised without a network or a Google project.
  */
 export const googleSheets = {
   getSheetValues,
   appendSheetRow,
   updateSheetValues,
+  ensureSheetExists,
 };
 
 /** Test-only: forces the next call to mint a fresh access token. */

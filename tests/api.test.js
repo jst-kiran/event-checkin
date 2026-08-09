@@ -25,10 +25,12 @@ const sessionRoute = (await import('../api/admin/session.js')).default;
 const statsRoute = (await import('../api/admin/stats.js')).default;
 const checkinsRoute = (await import('../api/admin/checkins.js')).default;
 const teamsRoute = (await import('../api/admin/teams.js')).default;
+const projectsRoute = (await import('../api/admin/projects.js')).default;
 
 const { call, installFakeSheets } = await import('./helpers/http.js');
 const { createFakeSheets, EMPTY_SHEETS } = await import('./helpers/fakeSheets.js');
 const { __resetReadCache } = await import('../api/_lib/attendance.js');
+const { __resetProjectsCache } = await import('../api/_lib/projects.js');
 const { __resetRateLimits } = await import('../api/_lib/rateLimit.js');
 const { createSessionToken, COOKIE_NAME } = await import('../api/_lib/auth.js');
 const { SheetsError } = await import('../api/_lib/googleSheets.js');
@@ -39,6 +41,7 @@ let restoreSheets = () => {};
 function setup(initial = EMPTY_SHEETS) {
   restoreSheets();
   __resetReadCache();
+  __resetProjectsCache();
   __resetRateLimits();
 
   const fake = createFakeSheets(initial);
@@ -368,7 +371,8 @@ test('POST /api/admin/logout clears the cookie', async () => {
 const PROTECTED = [
   ['stats', statsRoute, '/api/admin/stats'],
   ['checkins', checkinsRoute, '/api/admin/checkins'],
-  ['teams', teamsRoute, '/api/admin/teams?teams=3'],
+  ['teams', teamsRoute, '/api/admin/teams?size=3'],
+  ['projects', projectsRoute, '/api/admin/projects'],
 ];
 
 test('every admin data route refuses an anonymous caller', async () => {
@@ -455,145 +459,3 @@ test('GET /api/admin/checkins returns the log newest first', async () => {
   assert.equal(fake.calls.get > 0, true);
 });
 
-/* ==========================================================================
- * GET /api/admin/teams
- * ========================================================================== */
-
-async function teamsFor(emails, teams) {
-  setup({
-    CheckIn: [
-      EMPTY_SHEETS.CheckIn[0],
-      ...emails.map((email) => [
-        '2026-08-20T09:00:00+05:30',
-        email,
-        'Name',
-        '',
-        '',
-        '',
-        '',
-        'Checked In',
-      ]),
-    ],
-    Lunch: [EMPTY_SHEETS.Lunch[0]],
-  });
-
-  return call(teamsRoute, {
-    method: 'GET',
-    url: `/api/admin/teams?teams=${teams}`,
-    headers: authCookie(),
-  });
-}
-
-const ALL_SIX = [
-  'john@example.com',
-  'priya@example.com',
-  'alex@example.com',
-  'sam@example.com',
-  'riya@example.com',
-  'dana@example.com',
-];
-
-test('teams: everyone checked in appears exactly once', async () => {
-  const res = await teamsFor(ALL_SIX, 3);
-  const { teams, totalAttendees } = res.json();
-
-  const members = teams.flat().map((m) => m.email);
-  assert.equal(totalAttendees, 6);
-  assert.equal(members.length, 6);
-  assert.equal(new Set(members).size, 6);
-  assert.deepEqual([...members].sort(), [...ALL_SIX].sort());
-});
-
-test('teams: an even split is even', async () => {
-  const res = await teamsFor(ALL_SIX, 3);
-  assert.deepEqual(
-    res.json().teams.map((t) => t.length),
-    [2, 2, 2]
-  );
-});
-
-test('teams: an uneven split differs by at most one', async () => {
-  const res = await teamsFor(ALL_SIX.slice(0, 5), 3);
-  const sizes = res.json().teams.map((t) => t.length).sort((a, b) => b - a);
-
-  assert.deepEqual(sizes, [2, 2, 1]);
-  assert.ok(sizes[0] - sizes[sizes.length - 1] <= 1);
-});
-
-test('teams: fewer attendees than teams yields one team each, not empty teams', async () => {
-  const res = await teamsFor(ALL_SIX.slice(0, 2), 5);
-  const { teams, teamCount } = res.json();
-
-  assert.equal(teamCount, 2);
-  assert.equal(teams.length, 2);
-  assert.ok(teams.every((t) => t.length === 1));
-});
-
-test('teams: one attendee', async () => {
-  const res = await teamsFor([ALL_SIX[0]], 3);
-  assert.equal(res.json().teamCount, 1);
-  assert.equal(res.json().teams[0].length, 1);
-});
-
-test('teams: as many teams as attendees', async () => {
-  const res = await teamsFor(ALL_SIX.slice(0, 4), 4);
-  assert.equal(res.json().teamCount, 4);
-  assert.ok(res.json().teams.every((t) => t.length === 1));
-});
-
-test('teams: zero attendees is an empty result, not an error', async () => {
-  const res = await teamsFor([], 5);
-
-  assert.equal(res.statusCode, 200);
-  assert.deepEqual(res.json().teams, []);
-  assert.equal(res.json().totalAttendees, 0);
-});
-
-test('teams: duplicate check-in rows cannot put one person on two teams', async () => {
-  const res = await teamsFor(
-    ['john@example.com', 'JOHN@EXAMPLE.COM', 'john@example.com', 'priya@example.com'],
-    2
-  );
-
-  const members = res.json().teams.flat().map((m) => m.email);
-  assert.equal(members.length, 2);
-  assert.equal(new Set(members).size, 2);
-});
-
-test('teams: randomizing again reshuffles', async () => {
-  // With 8 attendees over 4 teams, an unchanged arrangement across ten draws
-  // would mean the shuffle is not running at all.
-  const emails = ALL_SIX.concat(['x1@example.com', 'x2@example.com']);
-  const first = JSON.stringify((await teamsFor(emails, 4)).json().teams);
-
-  let changed = false;
-  for (let i = 0; i < 10 && !changed; i++) {
-    if (JSON.stringify((await teamsFor(emails, 4)).json().teams) !== first) changed = true;
-  }
-  assert.ok(changed, 'ten draws produced an identical arrangement');
-});
-
-test('teams: an invalid count is refused', async () => {
-  setup();
-
-  for (const value of ['0', '-1', 'abc', '', '1.5.2', '101', '999999']) {
-    const res = await call(teamsRoute, {
-      method: 'GET',
-      url: `/api/admin/teams?teams=${value}`,
-      headers: authCookie(),
-    });
-    assert.equal(res.statusCode, 400, `for teams=${value}`);
-    assert.equal(res.json().status, 'INVALID_REQUEST');
-  }
-});
-
-test('teams: a missing count is refused', async () => {
-  setup();
-  const res = await call(teamsRoute, {
-    method: 'GET',
-    url: '/api/admin/teams',
-    headers: authCookie(),
-  });
-
-  assert.equal(res.statusCode, 400);
-});

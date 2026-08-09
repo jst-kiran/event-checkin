@@ -1,56 +1,105 @@
-import { useCallback, useEffect, useState } from 'react'
-import {
-  Users,
-  CheckCircle2,
-  Clock,
-  UtensilsCrossed,
-  RefreshCw,
-  AlertTriangle,
-} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Users, CheckCircle2, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import StatCard from '../components/StatCard'
 import CheckInTable from '../components/CheckInTable'
+import LunchDonut from '../components/LunchDonut'
+import ProjectUploads from '../components/ProjectUploads'
 import { api } from '../services/api'
+import { ADMIN_REFRESH_INTERVAL_MS } from '../config'
 
 const EMPTY_STATS = {
   registered: 0,
   checkedIn: 0,
   lunchClaimed: 0,
+  lunchNotClaimed: 0,
   yetToCheckIn: 0,
-  lunchByPreference: [],
+  lunchJain: 0,
+  lunchVeg: 0,
 }
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(EMPTY_STATS)
   const [checkIns, setCheckIns] = useState([])
+  const [submissions, setSubmissions] = useState([])
   const [snapshot, setSnapshot] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
 
+  // Guards against a slow request overlapping the next tick. Without it, a
+  // response that takes longer than the interval would stack up requests and
+  // burn Google read quota the check-in desk needs.
+  const inFlight = useRef(false)
+
   const load = useCallback(async () => {
+    if (inFlight.current) return
+    inFlight.current = true
     setRefreshing(true)
+
     try {
-      const [statsResult, checkInsResult] = await Promise.all([api.stats(), api.checkIns()])
+      // Issued together on purpose: the server caches sheet reads for a few
+      // seconds, so whichever of these lands first warms the tabs for the
+      // others and the whole cycle costs one read per sheet.
+      const [statsResult, checkInsResult, projectsResult] = await Promise.all([
+        api.stats(),
+        api.checkIns(),
+        api.projects(),
+      ])
+
       setStats(statsResult.stats)
       setSnapshot(statsResult.snapshot)
       setCheckIns(checkInsResult.checkIns)
+      setSubmissions(projectsResult.submissions)
       setUpdatedAt(new Date())
       setError('')
     } catch {
-      setError('Could not load live data from Google Sheets. Try refreshing.')
+      // The previous figures stay on screen rather than blanking the dashboard
+      // over one failed poll; the banner says they may be stale.
+      setError('Could not load live data from Google Sheets. Retrying automatically.')
     } finally {
+      inFlight.current = false
       setRefreshing(false)
       setLoading(false)
     }
   }, [])
 
-  // Loaded once on open, then only when asked. Nothing polls in the background:
-  // an unattended dashboard would otherwise burn the Sheets read quota that the
-  // check-in desk depends on.
   useEffect(() => {
     load()
+
+    let timer = null
+
+    const start = () => {
+      // Cleared first, so this can never install a second timer alongside one
+      // that is already running.
+      if (timer) clearInterval(timer)
+      timer = setInterval(load, ADMIN_REFRESH_INTERVAL_MS)
+    }
+
+    const stop = () => {
+      if (timer) clearInterval(timer)
+      timer = null
+    }
+
+    // A dashboard left open on a background tab should not keep spending sheet
+    // reads. Polling resumes, with an immediate refresh, when it comes back.
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        stop()
+      } else {
+        load()
+        start()
+      }
+    }
+
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [load])
 
   const percent = (part) =>
@@ -62,8 +111,8 @@ export default function AdminDashboard() {
       actions={
         <>
           {updatedAt && (
-            <span className="text-xs text-slate-400">
-              Updated {updatedAt.toLocaleTimeString(undefined, { timeStyle: 'short' })}
+            <span className="text-xs text-slate-400 tabular-nums">
+              Last updated {updatedAt.toLocaleTimeString(undefined, { timeStyle: 'medium' })}
             </span>
           )}
           <button
@@ -88,7 +137,7 @@ export default function AdminDashboard() {
         <p className="text-slate-500 text-sm">Loading live data…</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <StatCard
               icon={Users}
               label="Registered"
@@ -114,44 +163,20 @@ export default function AdminDashboard() {
               sublabel={percent(stats.yetToCheckIn)}
               accent="amber"
             />
-            <StatCard
-              icon={UtensilsCrossed}
-              label="Lunch claimed"
-              value={stats.lunchClaimed}
-              sublabel={percent(stats.lunchClaimed)}
-              accent="blue"
-            />
           </div>
 
           <div className="bg-white border border-slate-100 rounded-2xl shadow-card p-5 mb-6">
-            <h2 className="font-bold text-slate-900 mb-4">Lunch claimed by preference</h2>
+            <h2 className="font-bold text-slate-900 mb-4">Lunch</h2>
+            <LunchDonut
+              checkedIn={stats.checkedIn}
+              claimed={stats.lunchClaimed}
+              jain={stats.lunchJain}
+              veg={stats.lunchVeg}
+            />
+          </div>
 
-            {stats.lunchByPreference.length === 0 ? (
-              <p className="text-sm text-slate-400">No lunch claims yet.</p>
-            ) : (
-              <div className="flex flex-wrap gap-x-10 gap-y-4">
-                {/* Categories come from the registration data, so an unexpected
-                    preference shows up here instead of being folded away. */}
-                {stats.lunchByPreference.map((entry) => (
-                  <div key={entry.label}>
-                    <p className="text-xs uppercase tracking-wide text-slate-400 font-medium">
-                      {entry.label}
-                    </p>
-                    <p className="text-2xl font-bold text-slate-900 mt-0.5 tabular-nums">
-                      {entry.count}
-                    </p>
-                  </div>
-                ))}
-                <div className="border-l border-slate-100 pl-10">
-                  <p className="text-xs uppercase tracking-wide text-slate-400 font-medium">
-                    Total claimed
-                  </p>
-                  <p className="text-2xl font-bold text-brand-700 mt-0.5 tabular-nums">
-                    {stats.lunchClaimed}
-                  </p>
-                </div>
-              </div>
-            )}
+          <div className="mb-6">
+            <ProjectUploads submissions={submissions} />
           </div>
 
           <CheckInTable checkIns={checkIns} />

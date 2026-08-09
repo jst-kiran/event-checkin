@@ -37,13 +37,12 @@
  */
 
 import { googleSheets, SHEET_NAMES, SheetsError, columnLetter } from './googleSheets.js';
-import { mapHeaders, cellFor, normalizeEmail, text, mealKey } from './normalize.js';
+import { mapHeaders, cellFor, normalizeEmail, text, mealGroup } from './normalize.js';
 import { formatTimestamp } from './time.js';
 import {
   findRegistrationByEmail,
   getAllRegistrations,
   getRegistrationCount,
-  getMealCategories,
 } from './registrations.js';
 
 /** Status values this application writes. */
@@ -84,6 +83,22 @@ export const LUNCH_HEADERS = ['Timestamp', 'Email', 'Name', 'Meal Preference', '
  */
 const READ_CACHE_TTL_MS = 3000;
 
+/**
+ * Admin reads share a slightly longer window.
+ *
+ * The dashboard polls three endpoints at once, and each of them needs the same
+ * one or two tabs. Without a shared window that is five Google reads every
+ * refresh, per open dashboard — two organizers watching at a 12-second cadence
+ * would spend most of the 60-reads-per-minute budget and start starving the
+ * check-in desk of quota.
+ *
+ * With it, whichever endpoint arrives first warms the tab for the others, so a
+ * refresh cycle costs one read per tab no matter how many dashboards are open.
+ * The data can be up to five seconds behind, which is invisible next to a
+ * twelve-second poll.
+ */
+const ADMIN_CACHE_TTL_MS = 5000;
+
 const readCache = new Map();
 
 /* ==========================================================================
@@ -99,12 +114,13 @@ const readCache = new Map();
  *
  * @param {Object} sheets the googleSheets port (a fake, in tests)
  * @param {string} sheetName
- * @param {{fresh?: boolean}} [options] `fresh` bypasses the cache
+ * @param {{maxAgeMs?: number}} [options] how stale a cached copy may be;
+ *   0 forces a fresh read, which the duplicate reconciliation depends on
  * @returns {Promise<{headers: string[], map: Object, records: Array}>}
  */
-async function readSheet(sheets, sheetName, { fresh = false } = {}) {
+async function readSheet(sheets, sheetName, { maxAgeMs = READ_CACHE_TTL_MS } = {}) {
   const cached = readCache.get(sheetName);
-  if (!fresh && cached && Date.now() - cached.at < READ_CACHE_TTL_MS) return cached.value;
+  if (maxAgeMs > 0 && cached && Date.now() - cached.at < maxAgeMs) return cached.value;
 
   const rows = await sheets.getSheetValues(sheetName);
   const headers = rows.length ? rows[0].map(text) : [];
@@ -152,7 +168,7 @@ function findActive(sheet, email) {
  * write identical bytes.
  */
 async function ensureHeaders(sheets, sheetName, canonicalHeaders) {
-  const sheet = await readSheet(sheets, sheetName, { fresh: true });
+  const sheet = await readSheet(sheets, sheetName, { maxAgeMs: 0 });
   if (sheet.headers.length && sheet.map.email !== undefined) return sheet;
 
   if (sheet.headers.length && sheet.map.email === undefined) {
@@ -164,7 +180,7 @@ async function ensureHeaders(sheets, sheetName, canonicalHeaders) {
   const lastColumn = columnLetter(canonicalHeaders.length - 1);
   await sheets.updateSheetValues(sheetName, `A1:${lastColumn}1`, [canonicalHeaders]);
   readCache.delete(sheetName);
-  return readSheet(sheets, sheetName, { fresh: true });
+  return readSheet(sheets, sheetName, { maxAgeMs: 0 });
 }
 
 /** Lays values out according to the tab's actual header positions. */
@@ -224,7 +240,7 @@ function withEmailLock(email, task) {
 async function reconcile(sheets, sheetName, email, myRowNumber, statusField) {
   if (!myRowNumber) return true; // Google did not report a row; nothing to compare.
 
-  const sheet = await readSheet(sheets, sheetName, { fresh: true });
+  const sheet = await readSheet(sheets, sheetName, { maxAgeMs: 0 });
   const rivals = activeRecords(sheet).filter((record) => record.email === email);
   if (rivals.length <= 1) return true;
 
@@ -364,8 +380,8 @@ function uniqueByEmail(sheet) {
  */
 export async function getCheckInLog({ sheets = googleSheets } = {}) {
   const [checkInSheet, lunchSheet] = await Promise.all([
-    readSheet(sheets, SHEET_NAMES.checkIn, { fresh: true }),
-    readSheet(sheets, SHEET_NAMES.lunch, { fresh: true }),
+    readSheet(sheets, SHEET_NAMES.checkIn, { maxAgeMs: ADMIN_CACHE_TTL_MS }),
+    readSheet(sheets, SHEET_NAMES.lunch, { maxAgeMs: ADMIN_CACHE_TTL_MS }),
   ]);
 
   const lunchEmails = new Set(uniqueByEmail(lunchSheet).keys());
@@ -387,13 +403,18 @@ export async function getCheckInLog({ sheets = googleSheets } = {}) {
 /**
  * Dashboard figures, all derived from live data at request time.
  *
- * @returns {Promise<Object>} counts plus a lunch breakdown whose categories
- *   come from the registration data rather than a hardcoded list
+ * The lunch numbers are measured against people who have *checked in*, not
+ * against everyone registered. Only a checked-in attendee is allowed to claim a
+ * meal, so checked-in is the population the counter is actually serving —
+ * measuring against registrations would show a permanently poor-looking figure
+ * for people who never turned up.
+ *
+ * @returns {Promise<Object>} counts, plus Jain/Veg split of claimed meals
  */
 export async function getStats({ sheets = googleSheets } = {}) {
   const [checkInSheet, lunchSheet] = await Promise.all([
-    readSheet(sheets, SHEET_NAMES.checkIn, { fresh: true }),
-    readSheet(sheets, SHEET_NAMES.lunch, { fresh: true }),
+    readSheet(sheets, SHEET_NAMES.checkIn, { maxAgeMs: ADMIN_CACHE_TTL_MS }),
+    readSheet(sheets, SHEET_NAMES.lunch, { maxAgeMs: ADMIN_CACHE_TTL_MS }),
   ]);
 
   const registered = getRegistrationCount();
@@ -408,30 +429,33 @@ export async function getStats({ sheets = googleSheets } = {}) {
     if (findRegistrationByEmail(email)) checkedInAndRegistered++;
   }
 
-  const categories = getMealCategories();
-  const byPreference = new Map([...categories].map(([key, label]) => [key, { label, count: 0 }]));
-  let unspecified = 0;
+  // Meal preference comes from the frozen registration where the person is on
+  // the guest list, and falls back to whatever the Lunch row recorded — so a
+  // walk-in added to the sheet by hand still lands in one of the two groups
+  // and the split always sums to the number of claims.
+  let lunchJain = 0;
+  let lunchVeg = 0;
 
-  for (const email of lunchEmails.keys()) {
+  for (const [email, record] of lunchEmails) {
     const registration = findRegistrationByEmail(email);
-    const key = mealKey(registration?.mealPreference);
-    if (!key) {
-      unspecified++;
-      continue;
-    }
-    if (!byPreference.has(key)) byPreference.set(key, { label: key, count: 0 });
-    byPreference.get(key).count++;
+    const preference = registration?.mealPreference || record.mealPreference;
+    if (mealGroup(preference) === 'jain') lunchJain++;
+    else lunchVeg++;
   }
 
-  const lunchByPreference = [...byPreference.values()].sort((a, b) => b.count - a.count);
-  if (unspecified) lunchByPreference.push({ label: 'Not specified', count: unspecified });
+  const checkedIn = checkedInEmails.size;
+  const lunchClaimed = lunchEmails.size;
 
   return {
     registered,
-    checkedIn: checkedInEmails.size,
-    lunchClaimed: lunchEmails.size,
+    checkedIn,
+    lunchClaimed,
+    // Clamped: a lunch row for somebody with no check-in row would otherwise
+    // make this negative rather than simply zero.
+    lunchNotClaimed: Math.max(0, checkedIn - lunchClaimed),
     yetToCheckIn: Math.max(0, registered - checkedInAndRegistered),
-    lunchByPreference,
+    lunchJain,
+    lunchVeg,
   };
 }
 
@@ -442,7 +466,7 @@ export async function getStats({ sheets = googleSheets } = {}) {
  * rendered, so a page left open for an hour still draws against reality.
  */
 export async function getCheckedInRoster({ sheets = googleSheets } = {}) {
-  const sheet = await readSheet(sheets, SHEET_NAMES.checkIn, { fresh: true });
+  const sheet = await readSheet(sheets, SHEET_NAMES.checkIn, { maxAgeMs: ADMIN_CACHE_TTL_MS });
 
   return [...uniqueByEmail(sheet).values()].map((record) => {
     const registration = findRegistrationByEmail(record.email);
@@ -456,7 +480,7 @@ export async function getCheckedInRoster({ sheets = googleSheets } = {}) {
 
 /** Registered attendees who have not checked in. Admin-only by construction. */
 export async function getPendingAttendees({ sheets = googleSheets } = {}) {
-  const sheet = await readSheet(sheets, SHEET_NAMES.checkIn, { fresh: true });
+  const sheet = await readSheet(sheets, SHEET_NAMES.checkIn, { maxAgeMs: ADMIN_CACHE_TTL_MS });
   const checkedIn = new Set(uniqueByEmail(sheet).keys());
   return getAllRegistrations().filter((attendee) => !checkedIn.has(attendee.email));
 }

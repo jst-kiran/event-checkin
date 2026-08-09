@@ -1,34 +1,33 @@
 /**
- * The wordmark. Inline SVG rather than an image file so it is part of the first
- * paint — nothing to download, nothing to lay out late, and it stays crisp on
- * whatever screen the desk ends up using.
+ * The India AI + Tableau User Group mark.
+ *
+ * The asset is a square PNG on a white background with generous internal
+ * padding. Two consequences are handled here rather than by editing the file:
+ *
+ *   - mix-blend-multiply drops the white ground against the near-white page, so
+ *     the mark sits on the background instead of inside a visible white square.
+ *   - the negative vertical margins claw back the artwork's own padding, which
+ *     would otherwise read as an oversized gap above and below the logo.
+ *
+ * The wordmark is part of the image, so no text is set alongside it.
  */
-export default function Brand({ size = 'md' }) {
-  const large = size === 'lg'
 
+const SIZES = {
+  sm: 'w-24 -my-2',
+  md: 'w-32 -my-3',
+  lg: 'w-44 sm:w-52 -my-5 sm:-my-6',
+}
+
+export default function Brand({ size = 'md', className = '' }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <svg
-        viewBox="0 0 64 64"
-        className={large ? 'w-11 h-11' : 'w-8 h-8'}
-        role="img"
-        aria-label="Event Check-In"
-      >
-        <rect width="64" height="64" rx="16" className="fill-brand-600" />
-        <path
-          d="M18 33.5 L27.5 43 L46 24"
-          fill="none"
-          stroke="white"
-          strokeWidth="6.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span
-        className={`font-bold tracking-tight text-slate-900 ${large ? 'text-xl' : 'text-base'}`}
-      >
-        Event Check-In
-      </span>
+    <div className={`flex items-center justify-center ${className}`}>
+      <img
+        src="/logo.png"
+        alt="India AI + Tableau User Group"
+        width="498"
+        height="498"
+        className={`${SIZES[size] || SIZES.md} h-auto object-contain mix-blend-multiply`}
+      />
     </div>
   )
 }

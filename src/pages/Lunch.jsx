@@ -78,9 +78,14 @@ export default function Lunch() {
                 )
               }
             />
-            <Button variant="secondary" onClick={reset}>
-              {approved ? 'NEXT ATTENDEE' : 'TRY AGAIN'}
-            </Button>
+            {/* Same reasoning as check-in: a successful claim is the end of
+                this attendee's journey through their own device, so there is no
+                reset. A failed one still needs a retry. */}
+            {!approved && (
+              <Button variant="secondary" onClick={reset}>
+                TRY AGAIN
+              </Button>
+            )}
           </div>
         )}
       </DeskCard>

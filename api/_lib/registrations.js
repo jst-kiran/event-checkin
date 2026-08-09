@@ -19,7 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normalizeEmail, text, mealKey, mealLabel } from './normalize.js';
+import { normalizeEmail, text } from './normalize.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -153,25 +153,6 @@ export function getSnapshotInfo() {
     generatedAt: data.generatedAt,
     total: data.byEmail.size,
   };
-}
-
-/**
- * Meal preference groups derived from the data itself.
- *
- * Categories are never hardcoded: whatever the form actually collected is what
- * the dashboard reports, so an unexpected value shows up as its own row rather
- * than being quietly folded into "Normal".
- *
- * @returns {Map<string, string>} group key -> display label
- */
-export function getMealCategories() {
-  const categories = new Map();
-  for (const attendee of getAllRegistrations()) {
-    const key = mealKey(attendee.mealPreference);
-    if (!key || categories.has(key)) continue;
-    categories.set(key, key === 'jain' ? 'Jain' : mealLabel(attendee.mealPreference));
-  }
-  return categories;
 }
 
 /**

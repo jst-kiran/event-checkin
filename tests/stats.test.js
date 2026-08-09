@@ -100,7 +100,7 @@ test('a hand-typed row for someone not on the guest list cannot go negative', as
   assert.ok(stats.yetToCheckIn >= 0);
 });
 
-test('lunch is broken down by the preferences that exist in the data', async () => {
+test('claimed lunches split into exactly Jain and Veg', async () => {
   const fake = setup(
     [
       checkInRow('john@example.com'),
@@ -109,20 +109,54 @@ test('lunch is broken down by the preferences that exist in the data', async () 
       checkInRow('riya@example.com'),
     ],
     [
-      lunchRow('john@example.com'), // Jain
-      lunchRow('sam@example.com'), // Jain
+      lunchRow('john@example.com'), // Jain Veg Meal
+      lunchRow('sam@example.com'), // Jain Veg Meal
       lunchRow('priya@example.com'), // Veg Meal
-      lunchRow('riya@example.com'), // no preference stated
+      lunchRow('riya@example.com'), // no preference stated -> Veg
     ]
   );
 
   const stats = await getStats({ sheets: fake.sheets });
-  const byLabel = Object.fromEntries(stats.lunchByPreference.map((e) => [e.label, e.count]));
 
-  assert.equal(byLabel.Jain, 2);
-  assert.equal(byLabel['Veg Meal'], 1);
-  assert.equal(byLabel['Not specified'], 1);
-  assert.equal(stats.lunchClaimed, 4);
+  assert.equal(stats.lunchJain, 2);
+  assert.equal(stats.lunchVeg, 2);
+  // The two groups must always account for every claim — the donut depends on it.
+  assert.equal(stats.lunchJain + stats.lunchVeg, stats.lunchClaimed);
+});
+
+test('the donut denominator is checked-in attendees, not registrations', async () => {
+  const fake = setup(
+    [checkInRow('john@example.com'), checkInRow('priya@example.com'), checkInRow('alex@example.com')],
+    [lunchRow('john@example.com')]
+  );
+
+  const stats = await getStats({ sheets: fake.sheets });
+
+  assert.equal(stats.checkedIn, 3);
+  assert.equal(stats.lunchClaimed, 1);
+  assert.equal(stats.lunchNotClaimed, 2, 'the other two checked-in attendees');
+  assert.equal(stats.lunchClaimed + stats.lunchNotClaimed, stats.checkedIn);
+  // Registered is 6 in the fixture; it must not be the denominator here.
+  assert.notEqual(stats.lunchNotClaimed, stats.registered - stats.lunchClaimed);
+});
+
+test('lunchNotClaimed never goes negative', async () => {
+  // A lunch row for somebody with no check-in row — possible if a row is typed
+  // straight into the sheet.
+  const fake = setup([], [lunchRow('john@example.com'), lunchRow('priya@example.com')]);
+
+  const stats = await getStats({ sheets: fake.sheets });
+  assert.equal(stats.checkedIn, 0);
+  assert.equal(stats.lunchNotClaimed, 0);
+});
+
+test('meal group falls back to the Lunch row when the person is not registered', async () => {
+  const walkIn = ['2026-08-20T12:30:00+05:30', 'walkin@example.com', 'Walk In', 'Jain Veg Meal', 'Claimed'];
+  const fake = setup([checkInRow('walkin@example.com')], [walkIn]);
+
+  const stats = await getStats({ sheets: fake.sheets });
+  assert.equal(stats.lunchJain, 1);
+  assert.equal(stats.lunchVeg, 0);
 });
 
 test('the check-in log is deduplicated and enriched from the snapshot', async () => {

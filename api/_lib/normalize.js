@@ -102,6 +102,13 @@ const HEADER_ALIASES = {
   ],
   checkInStatus: ['checkinstatus', 'checkedin', 'entrystatus'],
   lunchStatus: ['lunchstatus', 'claimstatus', 'claimed'],
+
+  // ProjectUploads tab. Listed after the check-in/lunch status fields so a
+  // column literally titled "Status" is only claimed here once those more
+  // specific spellings have had their chance.
+  teamName: ['teamname', 'team'],
+  driveLink: ['googledrivelink', 'drivelink', 'driveurl', 'projectlink', 'submissionlink', 'link'],
+  submissionStatus: ['submissionstatus', 'status'],
 };
 
 /**
@@ -161,24 +168,34 @@ export function cellFor(row, map, field) {
 }
 
 /**
- * Groups a free-text meal preference into a comparable key.
+ * Groups a free-text meal preference into one of the two categories the
+ * kitchen actually distinguishes.
  *
- * The registration form collects prose ("Jain Veg Meal", "Veg", "Non-Veg"),
- * so the dashboard groups on this rather than on the raw string. Anything
- * mentioning jain is Jain; everything else keeps its own cleaned label, so
- * unexpected values show up in the summary instead of being silently folded
- * into a hardcoded category.
+ * The form collects prose — "Jain Veg Meal", "Veg Meal" — but the lunch
+ * counter only ever needs to know Jain or not. Anything mentioning jain is
+ * Jain; everything else, including a blank cell, is Veg. Keeping it to two
+ * groups is deliberate: the counts have to sum to the number of claims, and a
+ * third "unspecified" slice would be a category nobody can serve.
+ *
+ * @returns {'jain'|'veg'}
  */
-export function mealKey(meal) {
-  const value = text(meal).toLowerCase();
-  if (!value) return '';
-  if (value.includes('jain')) return 'jain';
-  return value;
+export function mealGroup(meal) {
+  return text(meal).toLowerCase().includes('jain') ? 'jain' : 'veg';
 }
 
-/** Display form of a meal preference: "jain veg meal" -> "Jain Veg Meal". */
-export function mealLabel(meal) {
-  const value = text(meal);
-  if (!value) return '';
-  return value.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+/** Display label for a meal group. */
+export function mealGroupLabel(group) {
+  return group === 'jain' ? 'Jain' : 'Veg';
 }
+
+/**
+ * Identity key for matching a typed name against a checked-in attendee.
+ *
+ * Used only by the team randomizer's ignore list, where an organizer types
+ * names by hand. "  RAHUL   patel " and "Rahul Patel" have to land on the same
+ * person, so case, padding and repeated inner spaces are all discarded.
+ */
+export function normalizeName(name) {
+  return text(name).toLowerCase();
+}
+

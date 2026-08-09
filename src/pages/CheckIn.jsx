@@ -4,6 +4,7 @@ import DeskLayout, { DeskCard } from '../components/DeskLayout'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import StatusPanel from '../components/StatusPanel'
+import EbooksButton from '../components/EbooksButton'
 import useVerification from '../hooks/useVerification'
 import { api } from '../services/api'
 import { resultFor, showsName } from '../utils/messages'
@@ -71,9 +72,20 @@ export default function CheckIn() {
               }
               description={result.description}
             />
-            <Button variant="secondary" onClick={reset}>
-              {isDone ? 'CHECK IN NEXT ATTENDEE' : 'TRY AGAIN'}
-            </Button>
+
+            {/* A checked-in attendee is finished — the next thing they want is
+                the resources, not a reset for somebody else. Everyone scans the
+                check-in QR on their own device.
+
+                An unsuccessful attempt is different: a mistyped address has to
+                be recoverable, so the error states keep a retry. */}
+            {isDone ? (
+              <EbooksButton />
+            ) : (
+              <Button variant="secondary" onClick={reset}>
+                TRY AGAIN
+              </Button>
+            )}
           </div>
         )}
       </DeskCard>
