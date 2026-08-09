@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ScanLine } from 'lucide-react'
+import { ScanLine, Mail } from 'lucide-react'
 import DeskLayout, { DeskCard } from '../components/DeskLayout'
 import Input from '../components/Input'
 import Button from '../components/Button'
@@ -15,8 +15,6 @@ export default function CheckIn() {
 
   const inputRef = useRef(null)
 
-  // After a reset the operator's next action is always to type an email, so the
-  // field takes focus itself — one less tap per attendee, all day.
   useEffect(() => {
     if (isFormVisible) inputRef.current?.focus()
   }, [isFormVisible])
@@ -25,21 +23,25 @@ export default function CheckIn() {
   const isDone = status === 'CHECKED_IN' || status === 'ALREADY_CHECKED_IN'
 
   return (
-    <DeskLayout>
+    <DeskLayout
+      title="Event Check-in"
+      subtitle="Enter your registered email address to verify your registration and check in."
+    >
       <DeskCard>
         {isFormVisible ? (
-          <>
-            <h1 className="text-2xl font-bold text-slate-900">Event check-in</h1>
-            <p className="text-slate-500 text-sm mt-1.5 mb-6">
-              Enter your registered email address to check in.
-            </p>
+          <div className="flex flex-col items-center text-center">
+            {/* Circular Email Icon Container */}
+            <div className="w-14 h-14 rounded-full bg-purple-50 border border-purple-100/80 flex items-center justify-center text-purple-600 mb-6 shadow-2xs">
+              <Mail className="w-6 h-6 stroke-[1.75]" aria-hidden="true" />
+            </div>
 
-            <form onSubmit={verify} className="flex flex-col gap-5">
+            <form onSubmit={verify} className="w-full flex flex-col gap-5">
               <Input
                 ref={inputRef}
-                label="Registered email"
+                label="REGISTERED EMAIL"
                 type="email"
                 inputMode="email"
+                icon={Mail}
                 placeholder="you@example.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -57,7 +59,7 @@ export default function CheckIn() {
                 VERIFY &amp; CHECK-IN
               </Button>
             </form>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col gap-6">
             <StatusPanel
@@ -73,12 +75,6 @@ export default function CheckIn() {
               description={result.description}
             />
 
-            {/* A checked-in attendee is finished — the next thing they want is
-                the resources, not a reset for somebody else. Everyone scans the
-                check-in QR on their own device.
-
-                An unsuccessful attempt is different: a mistyped address has to
-                be recoverable, so the error states keep a retry. */}
             {isDone ? (
               <EbooksButton />
             ) : (

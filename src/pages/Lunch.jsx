@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { UtensilsCrossed } from 'lucide-react'
+import { UtensilsCrossed, Mail } from 'lucide-react'
 import DeskLayout, { DeskCard } from '../components/DeskLayout'
 import Input from '../components/Input'
 import Button from '../components/Button'
@@ -22,21 +22,25 @@ export default function Lunch() {
   const approved = status === 'LUNCH_APPROVED'
 
   return (
-    <DeskLayout>
+    <DeskLayout
+      title="Lunch Claim"
+      subtitle="Enter your registered email address to collect your meal."
+    >
       <DeskCard>
         {isFormVisible ? (
-          <>
-            <h1 className="text-2xl font-bold text-slate-900">Lunch claim</h1>
-            <p className="text-slate-500 text-sm mt-1.5 mb-6">
-              Enter your registered email address to collect your meal.
-            </p>
+          <div className="flex flex-col items-center text-center">
+            {/* Circular Utensils Icon Container */}
+            <div className="w-14 h-14 rounded-full bg-purple-50 border border-purple-100/80 flex items-center justify-center text-purple-600 mb-6 shadow-2xs">
+              <UtensilsCrossed className="w-6 h-6 stroke-[1.75]" aria-hidden="true" />
+            </div>
 
-            <form onSubmit={verify} className="flex flex-col gap-5">
+            <form onSubmit={verify} className="w-full flex flex-col gap-5">
               <Input
                 ref={inputRef}
-                label="Registered email"
+                label="REGISTERED EMAIL"
                 type="email"
                 inputMode="email"
+                icon={Mail}
                 placeholder="you@example.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -54,7 +58,7 @@ export default function Lunch() {
                 CLAIM LUNCH
               </Button>
             </form>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col gap-6">
             <StatusPanel
@@ -63,24 +67,18 @@ export default function Lunch() {
               name={showsName(status) ? attendee?.name : undefined}
               description={result.description}
               extra={
-                // The meal preference is the one thing the counter staff needs
-                // to read, so it gets its own high-contrast row rather than
-                // being buried in the description.
                 approved && (
-                  <div className="flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-brand-50 border border-brand-100">
-                    <span className="text-xs font-semibold tracking-[0.15em] text-brand-700">
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-purple-50 border border-purple-100/80">
+                    <span className="text-xs font-bold tracking-[0.15em] text-purple-700 uppercase">
                       PREFERENCE
                     </span>
-                    <span className="font-bold text-brand-900 text-right">
+                    <span className="font-bold text-purple-900 text-right">
                       {mealLabel(attendee?.mealPreference)}
                     </span>
                   </div>
                 )
               }
             />
-            {/* Same reasoning as check-in: a successful claim is the end of
-                this attendee's journey through their own device, so there is no
-                reset. A failed one still needs a retry. */}
             {!approved && (
               <Button variant="secondary" onClick={reset}>
                 TRY AGAIN

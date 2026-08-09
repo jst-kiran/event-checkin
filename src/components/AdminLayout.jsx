@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Shuffle, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Shuffle, FolderUp, LogOut, Menu, X } from 'lucide-react'
 import Brand from './Brand'
 import { api } from '../services/api'
 
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/teams', label: 'Teams', icon: Shuffle, end: false },
+  { to: '/admin/projects', label: 'Project Uploads', icon: FolderUp, end: false },
 ]
 
 function navClass({ isActive }) {

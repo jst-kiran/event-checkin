@@ -1,14 +1,14 @@
 import { Loader2 } from 'lucide-react'
 
 /**
- * Sized for a real desk: the primary button is a 56px touch target that an
- * operator can hit without looking, and it goes disabled the moment a request
- * starts so a double-tap cannot become two check-ins.
+ * Button component styled according to the reference design CTA.
  */
 const VARIANTS = {
-  primary: 'bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white shadow-lift',
-  secondary: 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200',
-  ghost: 'bg-transparent hover:bg-slate-100 text-slate-600',
+  primary:
+    'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:from-purple-800 active:to-indigo-800 text-white font-bold text-sm tracking-wider uppercase shadow-lg shadow-purple-600/25',
+  secondary:
+    'bg-white hover:bg-purple-50/60 active:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-sm tracking-wider uppercase shadow-xs',
+  ghost: 'bg-transparent hover:bg-purple-50 text-purple-700 font-semibold text-sm',
 }
 
 export default function Button({
@@ -24,9 +24,8 @@ export default function Button({
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 w-full min-h-[3.5rem] px-6
-        rounded-2xl font-semibold text-sm tracking-wide transition-colors
-        disabled:opacity-60 disabled:cursor-not-allowed ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2.5 w-full min-h-[3.5rem] px-6
+        rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none ${VARIANTS[variant]} ${className}`}
       {...props}
     >
       {loading ? (
@@ -36,7 +35,7 @@ export default function Button({
         </>
       ) : (
         <>
-          {Icon && <Icon className="w-5 h-5" aria-hidden="true" />}
+          {Icon && <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />}
           <span>{children}</span>
         </>
       )}

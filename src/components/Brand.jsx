@@ -13,14 +13,15 @@
  */
 
 const SIZES = {
-  sm: 'w-24 -my-2',
-  md: 'w-32 -my-3',
-  lg: 'w-44 sm:w-52 -my-5 sm:-my-6',
+  sm: 'w-20 -my-2',
+  md: 'w-28 -my-3',
+  lg: 'w-36 -my-4',
+  xl: 'w-36 sm:w-40 -my-4',
 }
 
-export default function Brand({ size = 'md', className = '' }) {
+export default function Brand({ size = 'md', showText = false, className = '' }) {
   return (
-    <div className={`flex items-center justify-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center ${className}`}>
       <img
         src="/logo.png"
         alt="India AI + Tableau User Group"
@@ -28,6 +29,16 @@ export default function Brand({ size = 'md', className = '' }) {
         height="498"
         className={`${SIZES[size] || SIZES.md} h-auto object-contain mix-blend-multiply`}
       />
+      {showText && (
+        <div className="text-center mt-1">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">India AI + Tableau</h2>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <span className="w-6 h-[1.5px] bg-purple-300 rounded-full"></span>
+            <span className="text-xs font-semibold tracking-wider text-slate-600">User Group</span>
+            <span className="w-6 h-[1.5px] bg-purple-300 rounded-full"></span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

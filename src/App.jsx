@@ -4,6 +4,7 @@ import Lunch from './pages/Lunch'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import Teams from './pages/Teams'
+import Projects from './pages/Projects'
 import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
@@ -30,6 +31,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Teams />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/projects"
+          element={
+            <ProtectedRoute>
+              <Projects />
             </ProtectedRoute>
           }
         />

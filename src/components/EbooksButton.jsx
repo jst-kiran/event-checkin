@@ -1,21 +1,10 @@
 import { BookOpen, ExternalLink } from 'lucide-react'
 import { EBOOKS_URL } from '../config'
 
-/**
- * The action offered after a successful check-in.
- *
- * Attendees scan their own QR code, so the screen belongs to the person who
- * just checked in — the useful next step is the event's resources, not a reset
- * for somebody else.
- *
- * Until VITE_EBOOKS_URL is set this renders as a disabled notice rather than a
- * link. A button that goes nowhere is worse at an event than one that plainly
- * says the link is not ready.
- */
 export default function EbooksButton() {
   if (!EBOOKS_URL) {
     return (
-      <div className="w-full min-h-[3.5rem] px-6 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-slate-400 text-sm font-medium">
+      <div className="w-full min-h-[3.5rem] px-6 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 text-purple-400 text-sm font-medium">
         <BookOpen className="w-5 h-5" aria-hidden="true" />
         <span>E-books link coming soon</span>
       </div>
@@ -27,7 +16,7 @@ export default function EbooksButton() {
       href={EBOOKS_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="w-full min-h-[3.5rem] px-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-semibold text-sm tracking-wide shadow-lift transition-colors"
+      className="w-full min-h-[3.5rem] px-6 inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:from-purple-800 active:to-indigo-800 text-white font-bold text-sm tracking-wider uppercase shadow-lg shadow-purple-600/25 transition-all"
     >
       <BookOpen className="w-5 h-5" aria-hidden="true" />
       <span>EXPLORE E-BOOKS</span>
