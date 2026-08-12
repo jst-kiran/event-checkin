@@ -1,24 +1,35 @@
 import { useEffect, useState } from 'react'
-import { Shuffle, Users, AlertTriangle, Info, UserCheck, ShieldAlert } from 'lucide-react'
+import { Shuffle, Users, AlertTriangle, Info, ShieldAlert, Save, CheckCircle2 } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { api } from '../services/api'
 
 export default function Teams() {
   const [size, setSize] = useState('5')
   const [ignoreText, setIgnoreText] = useState('')
-  const [result, setResult] = useState(null)
+
+  const [savedResult, setSavedResult] = useState(null)
+  const [previewResult, setPreviewResult] = useState(null)
+
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [saveNotification, setSaveNotification] = useState(false)
+
   const [error, setError] = useState('')
   const [unmatched, setUnmatched] = useState([])
   const [ambiguous, setAmbiguous] = useState([])
+
+  const isPreview = Boolean(previewResult)
+  const activeResult = isPreview ? previewResult : savedResult
 
   const loadCurrentTeams = async () => {
     try {
       const data = await api.teams()
       if (data && data.hasTeams) {
-        setResult(data)
+        setSavedResult(data)
         if (data.teamSize) setSize(String(data.teamSize))
+      } else {
+        setSavedResult(null)
       }
     } catch {
       // Non-fatal if no teams exist yet
@@ -37,7 +48,7 @@ export default function Teams() {
     .filter(Boolean)
 
   const generate = async () => {
-    if (loading) return
+    if (loading || saving) return
     setLoading(true)
     setError('')
     setUnmatched([])
@@ -45,7 +56,7 @@ export default function Teams() {
 
     try {
       const data = await api.teams(Number(size), ignoreNames)
-      setResult(data)
+      setPreviewResult(data)
     } catch (err) {
       if (err.payload?.unmatched?.length || err.payload?.ambiguous?.length) {
         setUnmatched(err.payload.unmatched || [])
@@ -54,31 +65,91 @@ export default function Teams() {
         setError(
           err.status === 'INVALID_REQUEST'
             ? err.payload?.message || 'Check the values and try again.'
-            : 'Could not generate teams. Please try again.'
+            : 'Could not generate team preview. Please try again.'
         )
       }
-      setResult(null)
     } finally {
       setLoading(false)
     }
   }
 
-  const teams = result?.teams ?? []
+  const handleSaveTeams = async () => {
+    if (!isPreview || !previewResult || saving) return
+
+    setSaving(true)
+    setError('')
+
+    try {
+      const payload = {
+        teams: previewResult.teams,
+        teamSize: previewResult.teamSize,
+        totalAttendees: previewResult.totalAttendees,
+        checkedInCount: previewResult.checkedInCount,
+        ignoredCount: previewResult.ignoredCount,
+        ignored: previewResult.ignored,
+      }
+
+      const savedData = await api.saveTeams(payload)
+      setSavedResult(savedData)
+      setPreviewResult(null)
+      setSaveNotification(true)
+      setTimeout(() => setSaveNotification(false), 4000)
+    } catch {
+      setError('Could not save teams to Google Sheets. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const teams = activeResult?.teams ?? []
   const hasTeams = teams.length > 0
-  const noAttendees = result && result.totalAttendees === 0 && !hasTeams
+  const noAttendees = activeResult && activeResult.totalAttendees === 0 && !hasTeams
 
   return (
     <AdminLayout title="Team randomizer">
       <div className="bg-white border border-slate-100 rounded-2xl shadow-card p-5 mb-6">
+
+        {/* Status Indicator Banner */}
+        {isPreview ? (
+          <div className="mb-5 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs">
+            <div className="flex items-center gap-2 font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>UNSAVED PREVIEW</span>
+            </div>
+            <span className="text-amber-800 font-medium">
+              Click "SAVE TEAMS" to publish as official teams for Project Upload.
+            </span>
+          </div>
+        ) : savedResult?.hasTeams ? (
+          <div className="mb-5 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs">
+            <div className="flex items-center gap-2 font-bold uppercase tracking-wider">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+              <span>TEAMS SAVED &amp; OFFICIAL</span>
+            </div>
+            {savedResult.timestamp && (
+              <span className="text-emerald-700 font-medium text-[11px]">
+                Saved at {savedResult.timestamp}
+              </span>
+            )}
+          </div>
+        ) : null}
+
+        {saveNotification && (
+          <div className="mb-5 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold text-xs animate-fade-in">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Teams successfully saved to Google Sheets and published for Project Upload!</span>
+          </div>
+        )}
+
         <p className="text-sm text-slate-500 mb-5">
-          Randomly divides everyone who has checked in. Generating new teams will update the single source of truth used by the Project Upload page.
+          Randomly divides everyone who has checked in. Randomization creates an unsaved preview. Click "SAVE TEAMS" to update the official single source of truth used by Project Upload.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[10rem_1fr_auto] gap-4 lg:items-start">
           <div>
             <label
               htmlFor="team-size"
-              className="block text-[11px] font-semibold tracking-[0.15em] text-slate-500 mb-2"
+              className="block text-[11px] font-semibold tracking-[0.15em] text-slate-500 mb-2 uppercase"
             >
               MEMBERS PER TEAM
             </label>
@@ -96,7 +167,7 @@ export default function Teams() {
           <div>
             <label
               htmlFor="team-ignore"
-              className="block text-[11px] font-semibold tracking-[0.15em] text-slate-500 mb-2"
+              className="block text-[11px] font-semibold tracking-[0.15em] text-slate-500 mb-2 uppercase"
             >
               MEMBERS TO IGNORE <span className="text-slate-400">(OPTIONAL)</span>
             </label>
@@ -113,14 +184,24 @@ export default function Teams() {
             </p>
           </div>
 
-          <div className="lg:pt-[1.85rem]">
+          <div className="lg:pt-[1.85rem] flex flex-col sm:flex-row gap-2">
             <button
               onClick={generate}
-              disabled={loading}
-              className="w-full lg:w-auto inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors disabled:opacity-60"
+              disabled={loading || saving}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors disabled:opacity-60"
             >
               <Shuffle className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
               {loading ? 'Generating…' : hasTeams ? 'RANDOMIZE AGAIN' : 'GENERATE TEAMS'}
+            </button>
+
+            <button
+              onClick={handleSaveTeams}
+              disabled={!isPreview || saving || loading}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
+              title={isPreview ? 'Save these teams to Google Sheets' : 'No unsaved preview changes'}
+            >
+              <Save className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} aria-hidden="true" />
+              {saving ? 'Saving…' : 'SAVE TEAMS'}
             </button>
           </div>
         </div>
@@ -181,16 +262,16 @@ export default function Teams() {
       )}
 
       {initialLoading && (
-        <p className="text-slate-500 text-sm py-6 text-center">Loading active generated teams…</p>
+        <p className="text-slate-500 text-sm py-6 text-center">Loading official saved teams…</p>
       )}
 
       {!initialLoading && noAttendees && (
         <div className="bg-white border border-slate-100 rounded-2xl shadow-card px-5 py-12 text-center">
           <Users className="w-8 h-8 text-slate-300 mx-auto mb-3" aria-hidden="true" />
           <p className="text-slate-500 text-sm">
-            {result?.checkedInCount > 0
+            {activeResult?.checkedInCount > 0
               ? 'Everyone who has checked in is on the ignore list.'
-              : 'No teams generated yet. Click "Generate Teams" once attendees start arriving.'}
+              : 'No official teams saved yet. Click "Generate Teams" to create a preview and "Save Teams" to publish.'}
           </p>
         </div>
       )}
@@ -204,7 +285,7 @@ export default function Teams() {
                 Eligible Members
               </span>
               <span className="text-xl font-extrabold text-slate-900 mt-1">
-                {result.totalAttendees}
+                {activeResult.totalAttendees}
               </span>
             </div>
 
@@ -213,7 +294,7 @@ export default function Teams() {
                 Total Teams
               </span>
               <span className="text-xl font-extrabold text-brand-600 mt-1">
-                {result.teamCount}
+                {activeResult.teamCount}
               </span>
             </div>
 
@@ -222,7 +303,7 @@ export default function Teams() {
                 Target Team Size
               </span>
               <span className="text-xl font-extrabold text-slate-900 mt-1">
-                {result.teamSize || size}
+                {activeResult.teamSize || size}
               </span>
             </div>
 
@@ -231,20 +312,20 @@ export default function Teams() {
                 Ignored Members
               </span>
               <span className="text-xl font-extrabold text-amber-600 mt-1">
-                {result.ignoredCount || 0}
+                {activeResult.ignoredCount || 0}
               </span>
             </div>
           </div>
 
           {/* Explicit Ignored Members Section */}
-          {result.ignored && result.ignored.length > 0 && (
+          {activeResult.ignored && activeResult.ignored.length > 0 && (
             <div className="mb-6 bg-amber-50/60 border border-amber-100 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2 text-amber-800 font-bold text-xs uppercase tracking-wider">
                 <ShieldAlert className="w-4 h-4 text-amber-600" aria-hidden="true" />
-                <span>IGNORED MEMBERS ({result.ignored.length})</span>
+                <span>IGNORED MEMBERS ({activeResult.ignored.length})</span>
               </div>
               <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs text-slate-700 font-medium">
-                {result.ignored.map((item, idx) => (
+                {activeResult.ignored.map((item, idx) => (
                   <li key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-white/80 rounded-xl border border-amber-200/60">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                     <span className="font-semibold text-slate-900">{item.name || item.email}</span>

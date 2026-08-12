@@ -304,7 +304,7 @@ test('the ignore list applies only to the draw that used it', async () => {
   assert.equal(everyone(next).includes('rahul@example.com'), true);
 });
 
-test('ignoring someone never writes to the sheet', async () => {
+test('randomize GET produces preview without writing to Google Sheets', async () => {
   restoreSheets();
   __resetReadCache();
   __resetRateLimits();
@@ -316,15 +316,17 @@ test('ignoring someone never writes to the sheet', async () => {
   restoreSheets = installFakeSheets(fake);
 
   const before = JSON.stringify(fake.rows('CheckIn'));
-  await call(teamsRoute, {
+  const res = await call(teamsRoute, {
     method: 'GET',
     url: '/api/admin/teams?size=2&ignore=Rahul%20Patel',
     headers: authCookie(),
   });
 
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().isPreview, true);
   assert.equal(JSON.stringify(fake.rows('CheckIn')), before, 'CheckIn was modified');
   assert.equal(fake.calls.append, 0);
-  assert.ok(fake.rows('Teams').length > 1, 'Teams were persisted to Teams tab');
+  assert.equal(fake.rows('Teams').length, 0, 'Teams tab was not modified during preview');
 });
 
 test('ignoring everyone yields an empty draw rather than an error', async () => {
@@ -343,4 +345,59 @@ test('the same name listed twice is only excluded once', async () => {
   const payload = (await draw(NAMED, { size: 2, ignore: 'Rahul Patel, rahul patel' })).json();
   assert.equal(payload.ignoredCount, 1);
   assert.equal(payload.totalAttendees, 5);
+});
+
+test('POST save teams persists complete team/member data and restores after cold start', async () => {
+  restoreSheets();
+  __resetReadCache();
+  __resetRateLimits();
+
+  const fake = createFakeSheets({
+    CheckIn: [EMPTY_SHEETS.CheckIn[0], ...NAMED],
+    Lunch: [EMPTY_SHEETS.Lunch[0]],
+  });
+  restoreSheets = installFakeSheets(fake);
+
+  // 1. Generate preview teams with size 3 (unsaved)
+  const genRes = await call(teamsRoute, {
+    method: 'GET',
+    url: '/api/admin/teams?size=3',
+    headers: authCookie(),
+  });
+  assert.equal(genRes.statusCode, 200);
+  const preview = genRes.json();
+  assert.equal(preview.isPreview, true);
+  assert.equal(fake.rows('Teams').length, 0, 'Teams not saved yet');
+
+  // 2. Explicit POST to save teams
+  const saveRes = await call(teamsRoute, {
+    method: 'POST',
+    url: '/api/admin/teams',
+    headers: authCookie(),
+    body: preview,
+  });
+  assert.equal(saveRes.statusCode, 200);
+  assert.equal(saveRes.json().isSaved, true);
+  assert.ok(fake.rows('Teams').length > 1, 'Teams saved to sheet');
+
+  // 3. Simulate cold start by resetting cache and calling GET /api/admin/teams without size
+  const { __resetGeneratedTeamsCache } = await import('../api/_lib/generatedTeams.js');
+  __resetGeneratedTeamsCache();
+
+  const loadRes = await call(teamsRoute, {
+    method: 'GET',
+    url: '/api/admin/teams',
+    headers: authCookie(),
+  });
+
+  assert.equal(loadRes.statusCode, 200);
+  const loaded = loadRes.json();
+  assert.equal(loaded.isSaved, true);
+  assert.equal(loaded.totalAttendees, 6);
+  assert.equal(loaded.teams.length, 2);
+
+  // Verify member details exist in restored structure
+  const firstMember = loaded.teams[0].members[0];
+  assert.ok(firstMember.name, 'Member has name');
+  assert.ok(firstMember.email, 'Member has email');
 });

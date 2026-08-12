@@ -136,15 +136,27 @@ export async function getGeneratedTeams({ sheets = googleSheets, maxAgeMs = CACH
   }
 
   const map = mapHeaders(rows[0].map(text));
+  const getColIdx = (field, fallbackIndex) => (map[field] !== undefined ? map[field] : fallbackIndex);
+
+  const idxTeamName = getColIdx('teamName', 1);
+  const idxMemberName = getColIdx('memberName', 2);
+  const idxMemberEmail = getColIdx('memberEmail', 3);
+  const idxMemberOrg = getColIdx('memberOrganization', 4);
+  const idxTeamSize = getColIdx('teamSize', 5);
+  const idxIgnored = getColIdx('ignoredMembers', 6);
+
   const teamsMap = new Map();
+  let storedTeamSize = 0;
   let ignoredText = '';
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    const teamName = cellFor(row, map, 'teamName');
-    const memberName = cellFor(row, map, 'memberName');
-    const memberEmail = cellFor(row, map, 'memberEmail');
-    const organization = cellFor(row, map, 'memberOrganization');
+    const teamName = text(row[idxTeamName]);
+    const memberName = text(row[idxMemberName]);
+    const memberEmail = text(row[idxMemberEmail]);
+    const organization = text(row[idxMemberOrg]);
+    const rowTeamSize = text(row[idxTeamSize]);
+    const rowIgnored = text(row[idxIgnored]);
 
     if (!teamName) continue;
 
@@ -160,7 +172,11 @@ export async function getGeneratedTeams({ sheets = googleSheets, maxAgeMs = CACH
       });
     }
 
-    const rowIgnored = cellFor(row, map, 'ignoredMembers');
+    if (rowTeamSize && !storedTeamSize) {
+      const parsed = Number(rowTeamSize);
+      if (Number.isInteger(parsed) && parsed > 0) storedTeamSize = parsed;
+    }
+
     if (rowIgnored && !ignoredText) ignoredText = rowIgnored;
   }
 
@@ -171,13 +187,14 @@ export async function getGeneratedTeams({ sheets = googleSheets, maxAgeMs = CACH
     : [];
 
   const totalAttendees = teams.reduce((acc, t) => acc + t.members.length, 0);
+  const finalTeamSize = storedTeamSize || (teams.length ? Math.round(totalAttendees / teams.length) : 5);
 
   const value = {
     teams,
     teamCount: teams.length,
-    teamSize: teams.length ? teams[0].members.length : 0,
+    teamSize: finalTeamSize,
     totalAttendees,
-    checkedInCount: totalAttendees,
+    checkedInCount: totalAttendees + ignored.length,
     ignoredCount: ignored.length,
     ignored,
     hasTeams: teams.length > 0,

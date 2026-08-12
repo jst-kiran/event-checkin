@@ -75,8 +75,10 @@ export const api = {
 
   getPublicTeams: () => request('/api/teams'),
 
+  saveTeams: (payload) => request('/api/admin/teams', { method: 'POST', body: payload }),
+
   /**
-   * @param {number} [size] members per team (omit to fetch current generated teams)
+   * @param {number} [size] members per team (omit to fetch current saved teams)
    * @param {string[]} [ignore] names to leave out of this draw only
    */
   teams: (size, ignore = []) => {

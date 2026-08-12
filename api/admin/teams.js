@@ -23,7 +23,7 @@ import { pickTeamNames } from '../_lib/teamNames.js';
 import { normalizeName } from '../_lib/normalize.js';
 import { saveGeneratedTeams, getGeneratedTeams } from '../_lib/generatedTeams.js';
 import { rateLimit, ADMIN_READ_LIMIT } from '../_lib/rateLimit.js';
-import { send, requireMethod, getQuery, clientKey, fail, STATUS } from '../_lib/responses.js';
+import { send, readJsonBody, getQuery, clientKey, fail, STATUS } from '../_lib/responses.js';
 
 /** A team larger than this is a typo, not a plan. */
 const MAX_TEAM_SIZE = 100;
@@ -32,7 +32,11 @@ const MAX_TEAM_SIZE = 100;
 const MAX_IGNORED = 50;
 
 export default async function handler(req, res) {
-  if (!requireMethod(req, res, 'GET')) return;
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    return send(res, 405, { success: false, status: STATUS.METHOD_NOT_ALLOWED });
+  }
+
   if (!requireAdmin(req, res)) return;
 
   const limit = rateLimit(`teams:${clientKey(req)}`, ADMIN_READ_LIMIT);
@@ -41,15 +45,52 @@ export default async function handler(req, res) {
     return send(res, 429, { success: false, status: STATUS.RATE_LIMITED });
   }
 
+  // POST /api/admin/teams: Saves the current team preview payload to Google Sheets
+  if (req.method === 'POST') {
+    const body = await readJsonBody(req);
+    if (!body || !Array.isArray(body.teams)) {
+      return send(res, 400, {
+        success: false,
+        status: STATUS.INVALID_REQUEST,
+        message: 'Invalid team payload provided.',
+      });
+    }
+
+    try {
+      const saved = await saveGeneratedTeams({
+        teams: body.teams,
+        teamCount: body.teams.length,
+        teamSize: body.teamSize || 5,
+        totalAttendees: body.totalAttendees || 0,
+        checkedInCount: body.checkedInCount || 0,
+        ignoredCount: body.ignoredCount || 0,
+        ignored: body.ignored || [],
+      });
+
+      return send(res, 200, {
+        success: true,
+        status: STATUS.OK,
+        isSaved: true,
+        isPreview: false,
+        ...saved,
+      });
+    } catch (error) {
+      return fail(res, error, 'api/admin/teams');
+    }
+  }
+
+  // GET /api/admin/teams: Fetch saved teams or generate a transient preview
   const query = getQuery(req);
 
-  // If 'size' parameter was omitted entirely, return the current stored generated teams
+  // If 'size' parameter was omitted entirely, return the current saved teams from Google Sheets
   if (!('size' in query)) {
     try {
       const stored = await getGeneratedTeams();
       return send(res, 200, {
         success: true,
         status: STATUS.OK,
+        isSaved: stored.hasTeams,
+        isPreview: false,
         ...stored,
       });
     } catch (error) {
@@ -81,9 +122,6 @@ export default async function handler(req, res) {
     const roster = await getCheckedInRoster();
     const resolution = resolveIgnored(roster, requestedIgnores);
 
-    // A typo must never silently produce a draw that includes somebody the
-    // organizer meant to leave out — nor one that quietly excludes the wrong
-    // person. Refuse, and say exactly what could not be resolved.
     if (resolution.unmatched.length || resolution.ambiguous.length) {
       return send(res, 400, {
         success: false,
@@ -96,7 +134,9 @@ export default async function handler(req, res) {
     const eligible = roster.filter((person) => !resolution.excludedEmails.has(person.email));
 
     if (eligible.length === 0) {
-      const emptyResult = await saveGeneratedTeams({
+      return send(res, 200, {
+        success: true,
+        status: STATUS.OK,
         teams: [],
         teamCount: 0,
         teamSize: 0,
@@ -104,23 +144,22 @@ export default async function handler(req, res) {
         checkedInCount: roster.length,
         ignoredCount: resolution.excludedEmails.size,
         ignored: resolution.excluded,
-      });
-      return send(res, 200, {
-        success: true,
-        status: STATUS.OK,
-        ...emptyResult,
+        hasTeams: false,
+        isPreview: true,
+        isSaved: false,
       });
     }
 
-    // Ceiling, so the remainder gets a team rather than being dropped: 43 people
-    // at 5 per team is 9 teams, not 8 with 3 people left over.
     const teamCount = Math.ceil(eligible.length / teamSize);
     const members = distribute(shuffle(eligible), teamCount);
     const names = pickTeamNames(teamCount, (max) => crypto.randomInt(0, max));
 
     const generated = members.map((people, index) => ({ name: names[index], members: people }));
 
-    const saved = await saveGeneratedTeams({
+    // Return unsaved transient preview ONLY. Do NOT write to Google Sheets yet!
+    return send(res, 200, {
+      success: true,
+      status: STATUS.OK,
       teams: generated,
       teamCount,
       teamSize,
@@ -128,12 +167,9 @@ export default async function handler(req, res) {
       checkedInCount: roster.length,
       ignoredCount: resolution.excludedEmails.size,
       ignored: resolution.excluded,
-    });
-
-    return send(res, 200, {
-      success: true,
-      status: STATUS.OK,
-      ...saved,
+      hasTeams: true,
+      isPreview: true,
+      isSaved: false,
     });
   } catch (error) {
     return fail(res, error, 'api/admin/teams');

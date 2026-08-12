@@ -409,8 +409,8 @@ test('admin routes reject the wrong HTTP method even when authenticated', async 
   setup();
 
   for (const [name, handler, url] of PROTECTED) {
-    const res = await call(handler, { method: 'POST', url, headers: authCookie() });
-    assert.equal(res.statusCode, 405, `${name} should refuse POST`);
+    const res = await call(handler, { method: 'PUT', url, headers: authCookie() });
+    assert.equal(res.statusCode, 405, `${name} should refuse PUT`);
   }
 });
 

@@ -109,6 +109,13 @@ const HEADER_ALIASES = {
   teamName: ['teamname', 'team'],
   driveLink: ['googledrivelink', 'drivelink', 'driveurl', 'projectlink', 'submissionlink', 'link'],
   submissionStatus: ['submissionstatus', 'status'],
+
+  // Teams tab.
+  memberName: ['membername', 'member', 'participantname'],
+  memberEmail: ['memberemail'],
+  memberOrganization: ['memberorganization', 'memberorg'],
+  teamSize: ['teamsize', 'size'],
+  ignoredMembers: ['ignoredmembers', 'ignored'],
 };
 
 /**
