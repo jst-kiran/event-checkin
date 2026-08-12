@@ -11,8 +11,10 @@
  * completely unaware of it.
  */
 
-import { googleSheets, isMissingSheetError, columnLetter } from './googleSheets.js';
+import { googleSheets, isMissingSheetError, columnLetter, SheetsError } from './googleSheets.js';
 import { mapHeaders, cellFor, text } from './normalize.js';
+import { formatTimestamp } from './time.js';
+import { isGeneratedTeamName, getGeneratedTeamNames } from './generatedTeams.js';
 
 /** Tab name, overridable like the others. */
 export function projectsSheetName() {
@@ -40,7 +42,7 @@ let cache = null;
  * relying on the frontend to be careful. Anything unrecognized is returned as
  * empty, and the dashboard shows the row without a working link.
  */
-function safeLink(value) {
+export function safeLink(value) {
   const raw = text(value);
   if (!raw) return '';
   try {
@@ -107,6 +109,83 @@ export async function getProjectUploads({ sheets = googleSheets } = {}) {
   const value = { submissions, sheetReady: true };
   cache = { at: Date.now(), value };
   return value;
+}
+
+/**
+ * Appends a new project submission row to the existing ProjectUploads tab.
+ *
+ * Verifies that the tab and headers exist without recreating or overwriting
+ * the spreadsheet structure.
+ *
+ * @param {{teamName: string, driveLink: string, sheets?: Object, now?: Date}} options
+ * @returns {Promise<{status: string, submission?: Object}>}
+ */
+export async function submitProjectUpload({
+  teamName: rawTeam,
+  driveLink: rawLink,
+  sheets = googleSheets,
+  now = new Date(),
+} = {}) {
+  const driveLink = safeLink(rawLink);
+
+  const activeNames = await getGeneratedTeamNames({ sheets });
+  if (!activeNames || !activeNames.length) {
+    return { status: 'TEAMS_NOT_GENERATED' };
+  }
+
+  const teamName = await isGeneratedTeamName(rawTeam, { sheets });
+  if (!teamName) {
+    return { status: 'INVALID_TEAM_NAME' };
+  }
+
+  if (!driveLink) {
+    return { status: 'INVALID_DRIVE_LINK' };
+  }
+
+  let rows;
+  try {
+    rows = await sheets.getSheetValues(projectsSheetName());
+  } catch (error) {
+    if (isMissingSheetError(error)) {
+      throw new SheetsError(`Sheet "${projectsSheetName()}" does not exist`);
+    }
+    throw error;
+  }
+
+  if (!rows || !rows.length || !rows[0] || !rows[0].length) {
+    throw new SheetsError(`Sheet "${projectsSheetName()}" is empty or has no header row`);
+  }
+
+  const map = mapHeaders(rows[0].map(text));
+  if (map.teamName === undefined || map.driveLink === undefined) {
+    throw new SheetsError(`Sheet "${projectsSheetName()}" is missing required headers`);
+  }
+
+  const timestamp = formatTimestamp(now);
+  const headerCount = rows[0].length;
+  const row = new Array(headerCount).fill('');
+
+  if (map.timestamp !== undefined) row[map.timestamp] = timestamp;
+  else row[0] = timestamp;
+
+  row[map.teamName] = teamName;
+  row[map.driveLink] = driveLink;
+
+  if (map.submissionStatus !== undefined) row[map.submissionStatus] = 'Submitted';
+  else if (headerCount > 3) row[3] = 'Submitted';
+
+  await sheets.appendSheetRow(projectsSheetName(), row);
+  cache = null; // Clear read cache so admin sees submission immediately
+
+  return {
+    status: 'PROJECT_SUBMITTED',
+    submission: {
+      teamName,
+      driveLink,
+      submittedAt: timestamp,
+      status: 'Submitted',
+    },
+  };
 }
 
 /** Test-only. */

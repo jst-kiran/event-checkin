@@ -179,9 +179,9 @@ test('an invalid size is refused', async () => {
   }
 });
 
-test('a missing size is refused', async () => {
+test('a missing size loads stored generated teams', async () => {
   const res = await draw(roster(10), {});
-  assert.equal(res.statusCode, 400);
+  assert.equal(res.statusCode, 200);
 });
 
 /* ==========================================================================
@@ -324,7 +324,7 @@ test('ignoring someone never writes to the sheet', async () => {
 
   assert.equal(JSON.stringify(fake.rows('CheckIn')), before, 'CheckIn was modified');
   assert.equal(fake.calls.append, 0);
-  assert.equal(fake.calls.update, 0);
+  assert.ok(fake.rows('Teams').length > 1, 'Teams were persisted to Teams tab');
 });
 
 test('ignoring everyone yields an empty draw rather than an error', async () => {

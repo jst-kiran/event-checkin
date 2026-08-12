@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import CheckIn from './pages/CheckIn'
 import Lunch from './pages/Lunch'
+import ProjectUpload from './pages/ProjectUpload'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import Teams from './pages/Teams'
@@ -9,13 +10,14 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Check-in is what the QR code on the badge points at, so it is home. */}
         <Route path="/" element={<Navigate to="/checkin" replace />} />
 
         <Route path="/checkin" element={<CheckIn />} />
         <Route path="/lunch" element={<Lunch />} />
+        <Route path="/project-upload" element={<ProjectUpload />} />
 
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route

@@ -104,6 +104,9 @@ export const SHEET_NAMES = {
   get lunch() {
     return process.env.SHEET_LUNCH || 'Lunch';
   },
+  get teams() {
+    return process.env.SHEET_TEAMS || 'Teams';
+  },
 };
 
 /* ==========================================================================

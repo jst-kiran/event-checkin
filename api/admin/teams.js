@@ -21,6 +21,7 @@ import { requireAdmin } from '../_lib/auth.js';
 import { getCheckedInRoster } from '../_lib/attendance.js';
 import { pickTeamNames } from '../_lib/teamNames.js';
 import { normalizeName } from '../_lib/normalize.js';
+import { saveGeneratedTeams, getGeneratedTeams } from '../_lib/generatedTeams.js';
 import { rateLimit, ADMIN_READ_LIMIT } from '../_lib/rateLimit.js';
 import { send, requireMethod, getQuery, clientKey, fail, STATUS } from '../_lib/responses.js';
 
@@ -42,8 +43,20 @@ export default async function handler(req, res) {
 
   const query = getQuery(req);
 
-  // parseInt is too forgiving here: it reads "1.5.2" as 1 and "3abc" as 3, so a
-  // malformed value would silently become a plausible team size.
+  // If 'size' parameter was omitted entirely, return the current stored generated teams
+  if (!('size' in query)) {
+    try {
+      const stored = await getGeneratedTeams();
+      return send(res, 200, {
+        success: true,
+        status: STATUS.OK,
+        ...stored,
+      });
+    } catch (error) {
+      return fail(res, error, 'api/admin/teams');
+    }
+  }
+
   const raw = typeof query.size === 'string' ? query.size.trim() : '';
   const teamSize = /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
 
@@ -83,14 +96,19 @@ export default async function handler(req, res) {
     const eligible = roster.filter((person) => !resolution.excludedEmails.has(person.email));
 
     if (eligible.length === 0) {
-      return send(res, 200, {
-        success: true,
-        status: STATUS.OK,
+      const emptyResult = await saveGeneratedTeams({
         teams: [],
         teamCount: 0,
+        teamSize: 0,
         totalAttendees: 0,
         checkedInCount: roster.length,
         ignoredCount: resolution.excludedEmails.size,
+        ignored: resolution.excluded,
+      });
+      return send(res, 200, {
+        success: true,
+        status: STATUS.OK,
+        ...emptyResult,
       });
     }
 
@@ -100,16 +118,22 @@ export default async function handler(req, res) {
     const members = distribute(shuffle(eligible), teamCount);
     const names = pickTeamNames(teamCount, (max) => crypto.randomInt(0, max));
 
-    return send(res, 200, {
-      success: true,
-      status: STATUS.OK,
-      teams: members.map((people, index) => ({ name: names[index], members: people })),
+    const generated = members.map((people, index) => ({ name: names[index], members: people }));
+
+    const saved = await saveGeneratedTeams({
+      teams: generated,
       teamCount,
       teamSize,
       totalAttendees: eligible.length,
       checkedInCount: roster.length,
       ignoredCount: resolution.excludedEmails.size,
       ignored: resolution.excluded,
+    });
+
+    return send(res, 200, {
+      success: true,
+      status: STATUS.OK,
+      ...saved,
     });
   } catch (error) {
     return fail(res, error, 'api/admin/teams');

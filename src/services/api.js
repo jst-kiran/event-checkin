@@ -61,6 +61,8 @@ async function request(path, { method = 'GET', body } = {}) {
 export const api = {
   checkIn: (email) => request('/api/checkin', { method: 'POST', body: { email } }),
   claimLunch: (email) => request('/api/lunch', { method: 'POST', body: { email } }),
+  submitProject: (teamName, driveLink) =>
+    request('/api/project-upload', { method: 'POST', body: { teamName, driveLink } }),
 
   login: (email, password) =>
     request('/api/admin/login', { method: 'POST', body: { email, password } }),
@@ -71,11 +73,14 @@ export const api = {
   checkIns: () => request('/api/admin/checkins'),
   projects: () => request('/api/admin/projects'),
 
+  getPublicTeams: () => request('/api/teams'),
+
   /**
-   * @param {number} size members per team
+   * @param {number} [size] members per team (omit to fetch current generated teams)
    * @param {string[]} [ignore] names to leave out of this draw only
    */
   teams: (size, ignore = []) => {
+    if (size === undefined) return request('/api/admin/teams')
     const params = new URLSearchParams({ size: String(size) })
     if (ignore.length) params.set('ignore', ignore.join(','))
     return request(`/api/admin/teams?${params}`)
