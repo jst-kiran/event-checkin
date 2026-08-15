@@ -37,10 +37,26 @@ export default function ProjectUpload() {
   const timeLeftLabel = msLeft != null ? formatTimeLeft(msLeft) : null
   const isUrgent = msLeft != null && msLeft <= URGENT_MS
 
+  const timerElement =
+    timeLeftLabel && !submissionsClosed ? (
+      <div
+        role="timer"
+        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border text-xs font-bold uppercase tracking-wide shadow-2xs ${
+          isUrgent
+            ? 'bg-red-50 border-red-200 text-red-600'
+            : 'bg-purple-50/80 border-purple-200 text-purple-700'
+        }`}
+      >
+        <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+        <span>{timeLeftLabel} left to submit</span>
+      </div>
+    ) : null
+
   return (
     <DeskLayout
       title="Project Upload"
       subtitle="Submit your team's final project for evaluation."
+      headerExtra={timerElement}
     >
       <DeskCard>
         {!hasTeams && !loadingTeams ? (
@@ -76,20 +92,6 @@ export default function ProjectUpload() {
             <div className="w-14 h-14 rounded-full bg-purple-50 border border-purple-100/80 flex items-center justify-center text-purple-600 mb-6 shadow-2xs">
               <FolderUp className="w-6 h-6 stroke-[1.75]" aria-hidden="true" />
             </div>
-
-            {timeLeftLabel && (
-              <div
-                role="timer"
-                className={`w-full mb-5 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold uppercase tracking-wide ${
-                  isUrgent
-                    ? 'bg-red-50 border-red-100 text-red-600'
-                    : 'bg-purple-50/60 border-purple-100 text-purple-700'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                {timeLeftLabel} left to submit
-              </div>
-            )}
 
             <form onSubmit={submit} className="w-full flex flex-col gap-5">
               {/* Searchable Team Selector */}

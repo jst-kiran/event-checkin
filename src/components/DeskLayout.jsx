@@ -8,7 +8,7 @@ const EVENT_LOCATION = (import.meta.env.VITE_EVENT_LOCATION || '').trim()
 /**
  * The unified frame matching the reference design for attendee-facing screens.
  */
-export default function DeskLayout({ title, subtitle, children }) {
+export default function DeskLayout({ title, subtitle, headerExtra, children }) {
   return (
     <div className="relative min-h-[100dvh] bg-gradient-to-b from-[#f9f8fe] via-[#f5f3ff] to-[#faf8ff] flex flex-col items-center px-4 py-8 sm:py-12 overflow-x-hidden">
       {/* Decorative Top-Left Dot Grid */}
@@ -59,7 +59,7 @@ export default function DeskLayout({ title, subtitle, children }) {
       {/* Content Area */}
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
         {/* Brand Header */}
-        <header className="flex flex-col items-center text-center">
+        <header className="flex flex-col items-center text-center w-full">
           <Brand size="xl" showText={true} className="mb-4" />
 
           {/* Page Heading & Underline */}
@@ -74,6 +74,7 @@ export default function DeskLayout({ title, subtitle, children }) {
               {subtitle}
             </p>
           )}
+          {headerExtra && <div className="w-full mt-4">{headerExtra}</div>}
         </header>
 
         {/* Form Card */}
