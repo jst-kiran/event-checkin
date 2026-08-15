@@ -73,6 +73,10 @@ export const api = {
   checkIns: () => request('/api/admin/checkins'),
   projects: () => request('/api/admin/projects'),
 
+  getProjectSettings: () => request('/api/admin/project-settings'),
+  setProjectSettings: (deadlineLocal) =>
+    request('/api/admin/project-settings', { method: 'POST', body: { deadlineLocal } }),
+
   getPublicTeams: () => request('/api/teams'),
 
   saveTeams: (payload) => request('/api/admin/teams', { method: 'POST', body: payload }),

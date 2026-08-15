@@ -116,6 +116,10 @@ const HEADER_ALIASES = {
   memberOrganization: ['memberorganization', 'memberorg'],
   teamSize: ['teamsize', 'size'],
   ignoredMembers: ['ignoredmembers', 'ignored'],
+
+  // Settings tab: a plain key/value store.
+  key: ['key', 'setting', 'name'],
+  value: ['value', 'settingvalue'],
 };
 
 /**

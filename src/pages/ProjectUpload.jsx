@@ -5,13 +5,15 @@ import Button from '../components/Button'
 import StatusPanel from '../components/StatusPanel'
 import SearchableTeamSelect from '../components/SearchableTeamSelect'
 import useProjectUpload from '../hooks/useProjectUpload'
-import { resultFor } from '../utils/messages'
+import { resultFor, formatDateTime } from '../utils/messages'
 
 export default function ProjectUpload() {
   const {
     availableTeams,
     hasTeams,
     loadingTeams,
+    submissionsClosed,
+    submissionDeadline,
     teamName,
     setTeamName,
     driveLink,
@@ -46,6 +48,20 @@ export default function ProjectUpload() {
             </p>
             <div className="w-full px-4 py-3 rounded-2xl bg-purple-50/60 border border-purple-100 text-xs text-purple-700 font-medium">
               Please check back shortly after the team draw!
+            </div>
+          </div>
+        ) : submissionsClosed && !loadingTeams ? (
+          <div className="flex flex-col items-center text-center py-2">
+            <div className="w-14 h-14 rounded-full bg-purple-50 border border-purple-100/80 flex items-center justify-center text-purple-600 mb-5 shadow-2xs">
+              <Info className="w-6 h-6 stroke-[1.75]" aria-hidden="true" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">SUBMISSIONS CLOSED</h2>
+            <p className="text-slate-600 text-sm leading-relaxed max-w-xs mb-6">
+              The project submission window has closed
+              {submissionDeadline ? ` (${formatDateTime(submissionDeadline)})` : ''}.
+            </p>
+            <div className="w-full px-4 py-3 rounded-2xl bg-purple-50/60 border border-purple-100 text-xs text-purple-700 font-medium">
+              Please reach out to an organizer if you believe this is a mistake.
             </div>
           </div>
         ) : isFormVisible ? (

@@ -18,10 +18,15 @@ const EMPTY_STATS = {
   lunchVeg: 0,
 }
 
+const EMPTY_PROJECT_SETTINGS = { deadline: null, deadlineLocal: '', isClosed: false }
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState(EMPTY_STATS)
   const [checkIns, setCheckIns] = useState([])
   const [submissions, setSubmissions] = useState([])
+  const [projectSettings, setProjectSettings] = useState(EMPTY_PROJECT_SETTINGS)
+  const [savingDeadline, setSavingDeadline] = useState(false)
+  const [deadlineError, setDeadlineError] = useState('')
   const [snapshot, setSnapshot] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -42,16 +47,22 @@ export default function AdminDashboard() {
       // Issued together on purpose: the server caches sheet reads for a few
       // seconds, so whichever of these lands first warms the tabs for the
       // others and the whole cycle costs one read per sheet.
-      const [statsResult, checkInsResult, projectsResult] = await Promise.all([
+      const [statsResult, checkInsResult, projectsResult, projectSettingsResult] = await Promise.all([
         api.stats(),
         api.checkIns(),
         api.projects(),
+        api.getProjectSettings(),
       ])
 
       setStats(statsResult.stats)
       setSnapshot(statsResult.snapshot)
       setCheckIns(checkInsResult.checkIns)
       setSubmissions(projectsResult.submissions)
+      setProjectSettings({
+        deadline: projectSettingsResult.deadline,
+        deadlineLocal: projectSettingsResult.deadlineLocal,
+        isClosed: projectSettingsResult.isClosed,
+      })
       setUpdatedAt(new Date())
       setError('')
     } catch {
@@ -62,6 +73,23 @@ export default function AdminDashboard() {
       inFlight.current = false
       setRefreshing(false)
       setLoading(false)
+    }
+  }, [])
+
+  const saveDeadline = useCallback(async (deadlineLocal) => {
+    setSavingDeadline(true)
+    setDeadlineError('')
+    try {
+      const result = await api.setProjectSettings(deadlineLocal)
+      setProjectSettings({
+        deadline: result.deadline,
+        deadlineLocal: result.deadlineLocal,
+        isClosed: result.isClosed,
+      })
+    } catch (err) {
+      setDeadlineError(err.message || 'Could not save the deadline. Please try again.')
+    } finally {
+      setSavingDeadline(false)
     }
   }, [])
 
@@ -176,7 +204,15 @@ export default function AdminDashboard() {
           </div>
 
           <div className="mb-6">
-            <ProjectUploads submissions={submissions} />
+            <ProjectUploads
+              submissions={submissions}
+              deadline={projectSettings.deadline}
+              deadlineLocal={projectSettings.deadlineLocal}
+              isClosed={projectSettings.isClosed}
+              onSaveDeadline={saveDeadline}
+              savingDeadline={savingDeadline}
+              deadlineError={deadlineError}
+            />
           </div>
 
           <CheckInTable checkIns={checkIns} />
