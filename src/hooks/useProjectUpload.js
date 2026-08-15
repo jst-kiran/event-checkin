@@ -17,6 +17,7 @@ export default function useProjectUpload() {
   const [loadingTeams, setLoadingTeams] = useState(true)
   const [submissionsClosed, setSubmissionsClosed] = useState(false)
   const [submissionDeadline, setSubmissionDeadline] = useState(null)
+  const [msLeft, setMsLeft] = useState(null)
 
   const [teamName, setTeamNameState] = useState('')
   const [driveLink, setDriveLinkState] = useState('')
@@ -60,6 +61,34 @@ export default function useProjectUpload() {
   useEffect(() => {
     loadTeams()
   }, [loadTeams])
+
+  // Ticks the countdown once a deadline is known. The server is still the
+  // authority on whether a submission actually gets accepted — this only
+  // drives the on-screen timer and flips the local "closed" state the moment
+  // it runs out, so a team watching the page doesn't have to refresh to find
+  // out time's up.
+  useEffect(() => {
+    if (!submissionDeadline || submissionsClosed) {
+      setMsLeft(null)
+      return
+    }
+
+    const deadlineMs = new Date(submissionDeadline).getTime()
+    if (Number.isNaN(deadlineMs)) {
+      setMsLeft(null)
+      return
+    }
+
+    const tick = () => {
+      const remaining = deadlineMs - Date.now()
+      setMsLeft(Math.max(0, remaining))
+      if (remaining <= 0) setSubmissionsClosed(true)
+    }
+
+    tick()
+    const timer = setInterval(tick, 1000)
+    return () => clearInterval(timer)
+  }, [submissionDeadline, submissionsClosed])
 
   const setTeamName = useCallback((value) => {
     setTeamNameState(value)
@@ -143,6 +172,7 @@ export default function useProjectUpload() {
     loadingTeams,
     submissionsClosed,
     submissionDeadline,
+    msLeft,
     teamName,
     setTeamName,
     driveLink,

@@ -1,11 +1,14 @@
-import { FolderUp, Link as LinkIcon, Info } from 'lucide-react'
+import { FolderUp, Link as LinkIcon, Info, Clock } from 'lucide-react'
 import DeskLayout, { DeskCard } from '../components/DeskLayout'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import StatusPanel from '../components/StatusPanel'
 import SearchableTeamSelect from '../components/SearchableTeamSelect'
 import useProjectUpload from '../hooks/useProjectUpload'
-import { resultFor, formatDateTime } from '../utils/messages'
+import { resultFor, formatDateTime, formatTimeLeft } from '../utils/messages'
+
+/** Under 10 minutes, the badge turns urgent — same threshold the badge itself checks. */
+const URGENT_MS = 10 * 60 * 1000
 
 export default function ProjectUpload() {
   const {
@@ -14,6 +17,7 @@ export default function ProjectUpload() {
     loadingTeams,
     submissionsClosed,
     submissionDeadline,
+    msLeft,
     teamName,
     setTeamName,
     driveLink,
@@ -30,6 +34,8 @@ export default function ProjectUpload() {
 
   const result = status ? resultFor(status) : null
   const isSuccess = status === 'PROJECT_SUBMITTED'
+  const timeLeftLabel = msLeft != null ? formatTimeLeft(msLeft) : null
+  const isUrgent = msLeft != null && msLeft <= URGENT_MS
 
   return (
     <DeskLayout
@@ -70,6 +76,20 @@ export default function ProjectUpload() {
             <div className="w-14 h-14 rounded-full bg-purple-50 border border-purple-100/80 flex items-center justify-center text-purple-600 mb-6 shadow-2xs">
               <FolderUp className="w-6 h-6 stroke-[1.75]" aria-hidden="true" />
             </div>
+
+            {timeLeftLabel && (
+              <div
+                role="timer"
+                className={`w-full mb-5 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold uppercase tracking-wide ${
+                  isUrgent
+                    ? 'bg-red-50 border-red-100 text-red-600'
+                    : 'bg-purple-50/60 border-purple-100 text-purple-700'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                {timeLeftLabel} left to submit
+              </div>
+            )}
 
             <form onSubmit={submit} className="w-full flex flex-col gap-5">
               {/* Searchable Team Selector */}
