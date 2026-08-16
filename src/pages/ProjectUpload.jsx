@@ -7,9 +7,6 @@ import SearchableTeamSelect from '../components/SearchableTeamSelect'
 import useProjectUpload from '../hooks/useProjectUpload'
 import { resultFor, formatDateTime, formatTimeLeft } from '../utils/messages'
 
-/** Under 10 minutes, the badge turns urgent — same threshold the badge itself checks. */
-const URGENT_MS = 10 * 60 * 1000
-
 export default function ProjectUpload() {
   const {
     availableTeams,
@@ -35,19 +32,14 @@ export default function ProjectUpload() {
   const result = status ? resultFor(status) : null
   const isSuccess = status === 'PROJECT_SUBMITTED'
   const timeLeftLabel = msLeft != null ? formatTimeLeft(msLeft) : null
-  const isUrgent = msLeft != null && msLeft <= URGENT_MS
 
   const timerElement =
     timeLeftLabel && !submissionsClosed ? (
       <div
         role="timer"
-        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border text-xs font-bold uppercase tracking-wide shadow-2xs ${
-          isUrgent
-            ? 'bg-red-50 border-red-200 text-red-600'
-            : 'bg-purple-50/80 border-purple-200 text-purple-700'
-        }`}
+        className="w-full flex items-center justify-center gap-2.5 sm:gap-3 text-3xl sm:text-4xl font-extrabold text-red-600 tracking-tight text-center uppercase"
       >
-        <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+        <Clock className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 text-red-600" aria-hidden="true" />
         <span>{timeLeftLabel} left to submit</span>
       </div>
     ) : null
