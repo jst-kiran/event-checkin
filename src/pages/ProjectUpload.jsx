@@ -1,4 +1,4 @@
-import { FolderUp, Link as LinkIcon, Info, Clock } from 'lucide-react'
+import { FolderUp, Link as LinkIcon, Info } from 'lucide-react'
 import DeskLayout, { DeskCard } from '../components/DeskLayout'
 import Input from '../components/Input'
 import Button from '../components/Button'
@@ -37,9 +37,8 @@ export default function ProjectUpload() {
     timeLeftLabel && !submissionsClosed ? (
       <div
         role="timer"
-        className="w-full flex items-center justify-center gap-2.5 sm:gap-3 text-3xl sm:text-4xl font-extrabold text-red-600 tracking-tight text-center uppercase"
+        className="w-full flex items-center justify-center text-3xl sm:text-4xl font-extrabold text-red-600 tracking-tight text-center uppercase"
       >
-        <Clock className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 text-red-600" aria-hidden="true" />
         <span>{timeLeftLabel} left to submit</span>
       </div>
     ) : null
