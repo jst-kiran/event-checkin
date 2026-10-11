@@ -1,158 +1,124 @@
 /**
  * An in-memory stand-in for Google Sheets.
  *
- * It implements the same three-method port the real client exposes, with the
- * behaviours that actually matter for correctness: appends land at the bottom
- * and report their 1-based row number, reads return ragged rows the way Google
- * does (trailing empty cells omitted), and a missing tab reads as empty.
+ * It implements the same four-method port as the real client and behaves the
+ * way Google does where it matters: reads return deep copies and ragged rows
+ * stay ragged; an unknown spreadsheet is a 404 and an unknown tab a 400
+ * "Unable to parse range"; appends land at the bottom and report their 1-based
+ * row number; creating a tab that exists fails with "already exists".
  *
- * `onBeforeAppend` is the interesting one. It runs inside an append, which is
- * how a test simulates a *second lambda instance* winning the race — something
- * the in-process email lock deliberately prevents from happening any other way.
+ * Every write is logged with the tab it targeted, so tests can prove the
+ * registration tab is never written. As a second line of defence the fake
+ * itself refuses — loudly — any write to a tab listed in `readOnlyTabs`.
+ *
+ * `onBeforeAppend` runs inside an append; it is how a test simulates a second
+ * server instance winning a race.
  */
 
-import { columnLetter, SheetsError } from '../../api/_lib/googleSheets.js';
+import { SheetsError } from '../../api/_lib/googleSheets.js';
 
 function parseA1(range) {
   const match = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(range);
   if (!match) throw new Error(`fakeSheets: unsupported range "${range}"`);
-
-  const toIndex = (letters) =>
-    [...letters].reduce((total, char) => total * 26 + (char.charCodeAt(0) - 64), 0) - 1;
-
-  return {
-    startColumn: toIndex(match[1]),
-    startRow: Number(match[2]) - 1,
-    endColumn: match[3] ? toIndex(match[3]) : toIndex(match[1]),
-    endRow: match[4] ? Number(match[4]) - 1 : Number(match[2]) - 1,
-  };
+  const toIndex = (letters) => [...letters].reduce((total, c) => total * 26 + (c.charCodeAt(0) - 64), 0) - 1;
+  return { column: toIndex(match[1]), row: Number(match[2]) - 1 };
 }
 
-export function createFakeSheets(initial = {}) {
-  const tabs = new Map(
-    Object.entries(initial).map(([name, rows]) => [name, rows.map((row) => [...row])])
-  );
-
-  const calls = { get: 0, append: 0, update: 0, ensure: 0 };
+/**
+ * @param {Object<string, Object<string, Array<Array<string>>>>} spreadsheets
+ *   spreadsheetId -> tab name -> rows (header first)
+ * @param {{readOnlyTabs?: string[]}} [options]
+ */
+export function createFakeSheets(spreadsheets = {}, { readOnlyTabs = [] } = {}) {
+  const data = structuredClone(spreadsheets);
+  const calls = { get: 0, requests: [], writes: [], created: [] };
   let failure = null;
+  let writeFailure = null;
   let onBeforeAppend = null;
 
-  // Tabs that must behave as genuinely absent until ensureSheetExists creates
-  // them — reading one throws the way Google does, which is what lets the
-  // "missing ProjectUploads tab" path be exercised.
-  const missing = new Set();
+  const tab = (spreadsheetId, sheetName) => {
+    const book = data[spreadsheetId];
+    if (!book) throw new SheetsError('Sheets API GET failed (HTTP 404)', { httpStatus: 404 });
+    const rows = book[sheetName];
+    if (!rows) throw new SheetsError('Sheets API GET failed (HTTP 400): Unable to parse range', { httpStatus: 400 });
+    return rows;
+  };
 
-  function rowsFor(name) {
-    if (!tabs.has(name)) tabs.set(name, []);
-    missing.delete(name);
-    return tabs.get(name);
-  }
-
-  function maybeFail(operation) {
-    if (!failure) return;
-    if (failure.only && failure.only !== operation) return;
-    if (failure.times !== undefined) {
-      if (failure.times <= 0) return;
-      failure.times--;
+  const recordWrite = (kind, spreadsheetId, sheetName, payload) => {
+    calls.writes.push({ kind, spreadsheetId, sheetName, payload: structuredClone(payload) });
+    if (readOnlyTabs.includes(sheetName)) {
+      throw new Error(`fakeSheets: WRITE TO READ-ONLY TAB "${sheetName}" (${kind})`);
     }
-    throw failure.error;
-  }
+    if (writeFailure) throw writeFailure;
+  };
 
   const sheets = {
-    async getSheetValues(name) {
+    async getSheetValues(spreadsheetId, sheetName) {
       calls.get++;
-      maybeFail('get');
-
-      if (missing.has(name)) {
-        // Google reports an absent tab as a 400 on range parsing, not a 404.
-        throw new SheetsError(
-          `Sheets API GET /values/${name} failed (HTTP 400): Unable to parse range: ${name}`,
-          { httpStatus: 400 }
-        );
-      }
-
-      // Deep copy: a caller must not be able to mutate the "spreadsheet".
-      return rowsFor(name).map((row) => [...row]);
+      calls.requests.push({ spreadsheetId, sheetName });
+      if (failure) throw failure;
+      return structuredClone(tab(spreadsheetId, sheetName));
     },
 
-    async appendSheetRow(name, values) {
-      calls.append++;
-      maybeFail('append');
-
+    async appendSheetRow(spreadsheetId, sheetName, values) {
+      recordWrite('append', spreadsheetId, sheetName, values);
       if (onBeforeAppend) {
         const hook = onBeforeAppend;
-        onBeforeAppend = null; // fire once, so a hook cannot recurse
-        await hook(sheets, name, values);
+        onBeforeAppend = null;
+        await hook();
       }
-
-      const rows = rowsFor(name);
-      rows.push([...values]);
-      const rowNumber = rows.length;
-
-      return {
-        rowNumber,
-        updatedRange: `${name}!A${rowNumber}:${columnLetter(values.length - 1)}${rowNumber}`,
-      };
+      const rows = tab(spreadsheetId, sheetName);
+      // Google drops trailing empty cells; so do we.
+      const trimmed = [...values];
+      while (trimmed.length && trimmed[trimmed.length - 1] === '') trimmed.pop();
+      rows.push(trimmed);
+      return { rowNumber: rows.length };
     },
 
-    async ensureSheetExists(name) {
-      calls.ensure++;
-      maybeFail('ensure');
-      rowsFor(name); // creating the tab is exactly "make it exist and be empty"
-    },
-
-    async updateSheetValues(name, range, values) {
-      calls.update++;
-      maybeFail('update');
-
-      const { startColumn, startRow } = parseA1(range);
-      const rows = rowsFor(name);
-
-      values.forEach((incoming, rowOffset) => {
-        const rowIndex = startRow + rowOffset;
-        while (rows.length <= rowIndex) rows.push([]);
-        const row = rows[rowIndex];
-        incoming.forEach((cell, columnOffset) => {
-          const columnIndex = startColumn + columnOffset;
-          while (row.length <= columnIndex) row.push('');
-          row[columnIndex] = cell;
+    async updateSheetValues(spreadsheetId, sheetName, a1Range, values) {
+      recordWrite('update', spreadsheetId, sheetName, { a1Range, values });
+      const rows = tab(spreadsheetId, sheetName);
+      const start = parseA1(a1Range.split(':')[0]);
+      values.forEach((rowValues, r) => {
+        const target = (rows[start.row + r] = rows[start.row + r] || []);
+        rowValues.forEach((value, c) => {
+          while (target.length < start.column + c) target.push('');
+          target[start.column + c] = value;
         });
       });
+    },
+
+    async createCheckInTab(spreadsheetId, sheetName, layout) {
+      recordWrite('create', spreadsheetId, sheetName, layout);
+      calls.created.push({ spreadsheetId, sheetName, layout: structuredClone(layout) });
+      const book = (data[spreadsheetId] = data[spreadsheetId] || {});
+      if (book[sheetName]) throw new SheetsError(`A sheet with the name "${sheetName}" already exists`);
+      book[sheetName] = [[...layout.headers]];
     },
   };
 
   return {
     sheets,
     calls,
-    /** Current contents of a tab, header row included. */
-    rows: (name) => rowsFor(name).map((row) => [...row]),
-    /** Makes the next `times` operations throw. */
-    failWith(error, { only, times } = {}) {
-      failure = { error, only, times };
+    /** Makes every subsequent read throw `error` (null to recover). */
+    failWith(error) {
+      failure = error;
     },
-    clearFailure() {
-      failure = null;
+    /** Makes every subsequent write throw `error` (null to recover). */
+    failWritesWith(error) {
+      writeFailure = error;
     },
-    /** Runs once, inside the next append, before the row is written. */
+    /** Runs once, inside the next append — simulates a concurrent instance. */
     beforeNextAppend(hook) {
       onBeforeAppend = hook;
     },
-    /** Makes a tab behave as though it does not exist in the spreadsheet. */
-    markMissing(name) {
-      tabs.delete(name);
-      missing.add(name);
+    /** Direct access for assertions and for simulating hand edits. */
+    rows(spreadsheetId, sheetName) {
+      return data[spreadsheetId]?.[sheetName];
     },
-    /** True once the tab has been created (or written to). */
-    exists(name) {
-      return tabs.has(name) && !missing.has(name);
+    setRows(spreadsheetId, sheetName, rows) {
+      data[spreadsheetId] = data[spreadsheetId] || {};
+      data[spreadsheetId][sheetName] = structuredClone(rows);
     },
   };
 }
-
-/** The canonical tabs, with just a header row — what a prepared sheet looks like. */
-export const EMPTY_SHEETS = {
-  CheckIn: [
-    ['Timestamp', 'Email', 'Name', 'Organization', 'Designation', 'Phone', 'Meal Preference', 'Check-in Status'],
-  ],
-  Lunch: [['Timestamp', 'Email', 'Name', 'Meal Preference', 'Lunch Status']],
-};

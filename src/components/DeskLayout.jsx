@@ -1,5 +1,4 @@
 import { ShieldCheck, Calendar, MapPin } from 'lucide-react'
-import Brand from './Brand'
 
 // Read optional event info from VITE_ variables if configured (otherwise cleanly omitted)
 const EVENT_DATE = (import.meta.env.VITE_EVENT_DATE || '').trim()
@@ -58,10 +57,8 @@ export default function DeskLayout({ title, subtitle, headerExtra, children }) {
 
       {/* Content Area */}
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-        {/* Brand Header */}
-        <header className="flex flex-col items-center text-center w-full">
-          <Brand size="xl" showText={true} className="mb-4" />
-
+        {/* Page Header */}
+        <header className="flex flex-col items-center text-center w-full pt-6 sm:pt-10">
           {/* Page Heading & Underline */}
           {title && (
             <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-center">
@@ -105,14 +102,6 @@ export default function DeskLayout({ title, subtitle, headerExtra, children }) {
           </div>
         )}
 
-        {/* Footer */}
-        <footer className="flex items-center justify-center gap-3 text-xs text-slate-400 font-medium mt-2">
-          <span className="w-6 h-[1px] bg-purple-200"></span>
-          <span>
-            Powered by <strong className="text-purple-600 font-semibold">Tableau Community</strong>
-          </span>
-          <span className="w-6 h-[1px] bg-purple-200"></span>
-        </footer>
       </div>
     </div>
   )

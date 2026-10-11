@@ -5,8 +5,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 20,
-      "includeFiles": "data/**"
+      "maxDuration": 20
     }
   },
   "rewrites": [

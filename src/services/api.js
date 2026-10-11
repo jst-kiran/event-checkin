@@ -1,9 +1,9 @@
 /**
  * The browser's entire backend surface.
  *
- * Every call is same-origin to /api. There is no Google endpoint, no key and
- * no admin credential anywhere in this bundle — the serverless functions hold
- * all of it, and this file only knows their paths.
+ * Every call is same-origin to /api. There is no Google endpoint, no key, no
+ * spreadsheet ID and no credential anywhere in this bundle — the serverless
+ * functions hold all of it, and this file only knows their paths.
  */
 
 /**
@@ -59,36 +59,20 @@ async function request(path, { method = 'GET', body } = {}) {
 }
 
 export const api = {
-  checkIn: (email) => request('/api/checkin', { method: 'POST', body: { email } }),
-  claimLunch: (email) => request('/api/lunch', { method: 'POST', body: { email } }),
-  submitProject: (teamName, driveLink) =>
-    request('/api/project-upload', { method: 'POST', body: { teamName, driveLink } }),
+  /** Desk: verify a registration and check the person in. */
+  verify: (email) => request('/api/verify', { method: 'POST', body: { email } }),
 
   login: (email, password) =>
     request('/api/admin/login', { method: 'POST', body: { email, password } }),
   logout: () => request('/api/admin/logout', { method: 'POST' }),
   session: () => request('/api/admin/session'),
 
-  stats: () => request('/api/admin/stats'),
-  checkIns: () => request('/api/admin/checkins'),
-  projects: () => request('/api/admin/projects'),
-
-  getProjectSettings: () => request('/api/admin/project-settings'),
-  setProjectSettings: (deadlineLocal) =>
-    request('/api/admin/project-settings', { method: 'POST', body: { deadlineLocal } }),
-
-  getPublicTeams: () => request('/api/teams'),
-
-  saveTeams: (payload) => request('/api/admin/teams', { method: 'POST', body: payload }),
-
-  /**
-   * @param {number} [size] members per team (omit to fetch current saved teams)
-   * @param {string[]} [ignore] names to leave out of this draw only
-   */
-  teams: (size, ignore = []) => {
-    if (size === undefined) return request('/api/admin/teams')
-    const params = new URLSearchParams({ size: String(size) })
-    if (ignore.length) params.set('ignore', ignore.join(','))
-    return request(`/api/admin/teams?${params}`)
-  },
+  /** Every registration with check-in status, plus walk-ins and sheet health. */
+  attendees: () => request('/api/admin/attendees'),
+  /** Manually check in someone who is in the registration sheet. */
+  manualCheckIn: (email) =>
+    request('/api/admin/attendees', { method: 'POST', body: { action: 'check-in', email } }),
+  /** Check in someone who is not in the registration sheet. */
+  addWalkIn: (details) =>
+    request('/api/admin/attendees', { method: 'POST', body: { action: 'walk-in', ...details } }),
 }

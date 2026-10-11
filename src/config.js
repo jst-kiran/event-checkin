@@ -8,17 +8,6 @@
  */
 
 /**
- * How often the admin dashboard re-reads live data.
- *
- * Twelve seconds is a deliberate compromise. Google allows 60 sheet reads per
- * minute per service account, and the check-in desk needs most of that budget —
- * so the dashboard shares a short server-side cache and polls at a cadence that
- * feels live without competing with attendees for quota. Raising this is safe;
- * lowering it eats into the desk's headroom.
- */
-export const ADMIN_REFRESH_INTERVAL_MS = 12_000
-
-/**
  * The event's e-books / resources link, shown after a successful check-in.
  *
  * Set VITE_EBOOKS_URL in .env locally and in Vercel for production. Until a

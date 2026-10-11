@@ -28,7 +28,11 @@ const TONES = {
   },
 }
 
-export default function StatusPanel({ tone = 'success', title, name, description, extra }) {
+/**
+ * `joined` renders title and description as a single sentence —
+ * "Title — description" — for messages whose exact wording matters.
+ */
+export default function StatusPanel({ tone = 'success', title, name, description, joined = false, extra }) {
   const style = TONES[tone] || TONES.error
   const Icon = style.icon
 
@@ -45,17 +49,24 @@ export default function StatusPanel({ tone = 'success', title, name, description
         <Icon className={`w-10 h-10 ${style.iconColor}`} strokeWidth={2} aria-hidden="true" />
       </div>
 
-      <div className="w-full">
-        <p className={`text-sm font-bold tracking-[0.15em] ${style.titleColor}`}>{title}</p>
-        {name && (
-          <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2 break-words">{name}</p>
-        )}
-        {description && (
-          <p className="text-slate-500 mt-2 text-sm leading-relaxed max-w-xs mx-auto">
-            {description}
-          </p>
-        )}
-      </div>
+      {joined ? (
+        <p className="w-full text-sm leading-relaxed text-slate-600 max-w-xs mx-auto">
+          <strong className={`font-bold ${style.titleColor}`}>{title}</strong>
+          {description ? ` \u2014 ${description}` : null}
+        </p>
+      ) : (
+        <div className="w-full">
+          <p className={`text-sm font-bold tracking-[0.15em] ${style.titleColor}`}>{title}</p>
+          {name && (
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2 break-words">{name}</p>
+          )}
+          {description && (
+            <p className="text-slate-500 mt-2 text-sm leading-relaxed max-w-xs mx-auto">
+              {description}
+            </p>
+          )}
+        </div>
+      )}
 
       {extra && <div className="w-full">{extra}</div>}
     </div>

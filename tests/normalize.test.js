@@ -1,16 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  normalizeEmail,
-  isValidEmail,
-  normalizeHeader,
-  mapHeaders,
-  cellFor,
-  mealGroup,
-  mealGroupLabel,
-  normalizeName,
-  text,
-} from '../api/_lib/normalize.js';
+import { normalizeEmail, isValidEmail, normalizeHeader, text } from '../api/_lib/normalize.js';
 
 test('normalizeEmail collapses the ways one address gets typed', () => {
   const expected = 'john@example.com';
@@ -74,122 +64,34 @@ test('normalizeHeader ignores case, spacing and punctuation', () => {
   }
 });
 
-test('mapHeaders resolves a Google Form export', () => {
-  const map = mapHeaders([
-    'Timestamp',
-    'Name',
-    'Email Address',
-    'Organization/University',
-    'Designation',
-    'Phone Number',
-    'Meal Preference',
-  ]);
-
-  assert.equal(map.timestamp, 0);
-  assert.equal(map.name, 1);
-  assert.equal(map.email, 2);
-  assert.equal(map.organization, 3);
-  assert.equal(map.designation, 4);
-  assert.equal(map.phone, 5);
-  assert.equal(map.mealPreference, 6);
-});
-
-test('mapHeaders is order-independent', () => {
-  const map = mapHeaders(['Meal Preference', 'E-mail', 'Full Name']);
-  assert.equal(map.mealPreference, 0);
-  assert.equal(map.email, 1);
-  assert.equal(map.name, 2);
-});
-
-test('mapHeaders prefers the more specific spelling when both are present', () => {
-  // "Email Address" is listed ahead of "Email", so it wins the email slot and
-  // the plain "Email" column is left unclaimed rather than double-mapped.
-  const map = mapHeaders(['Email', 'Email Address']);
-  assert.equal(map.email, 1);
-});
-
-test('mapHeaders never assigns one column to two fields', () => {
-  const map = mapHeaders(['Organization/University', 'Email']);
-  const used = Object.values(map);
-  assert.equal(new Set(used).size, used.length);
-});
-
-test('mapHeaders falls back to a substring match for unusual headers', () => {
-  const map = mapHeaders(['Your Work Email', 'Preferred Meal (Veg/Jain)']);
-  assert.equal(map.email, 0);
-  assert.equal(map.mealPreference, 1);
-});
-
-test('mapHeaders reports missing columns as absent, not as zero', () => {
-  const map = mapHeaders(['Email']);
-  assert.equal(map.email, 0);
-  assert.equal(map.name, undefined);
-  // The distinction matters: `map.name || 0` would silently read column A.
-  assert.ok(!('name' in map));
-});
-
-test('mapHeaders copes with an empty or ragged header row', () => {
-  assert.deepEqual(mapHeaders([]), {});
-  assert.deepEqual(mapHeaders(undefined), {});
-  assert.equal(mapHeaders(['', null, 'Email']).email, 2);
-});
-
-test('cellFor tolerates rows shorter than the header row', () => {
-  const map = mapHeaders(['Email', 'Name', 'Organization']);
-  // Google omits trailing empty cells, so this is the normal case, not an edge.
-  assert.equal(cellFor(['a@b.com'], map, 'email'), 'a@b.com');
-  assert.equal(cellFor(['a@b.com'], map, 'organization'), '');
-  assert.equal(cellFor([], map, 'email'), '');
-});
-
 test('text flattens whitespace a form export leaves behind', () => {
   assert.equal(text('  John   Doe \n'), 'John Doe');
   assert.equal(text(null), '');
   assert.equal(text(42), '42');
 });
 
-test('mealGroup treats every spelling of Jain as Jain', () => {
-  for (const meal of ['Jain', 'jain veg meal', 'JAIN MEAL', ' Jain Veg ']) {
-    assert.equal(mealGroup(meal), 'jain', `failed for ${meal}`);
+test('normalizeEmail strips non-breaking and invisible characters from copy-paste', () => {
+  for (const input of [
+    '\u00A0john@example.com\u00A0',
+    '\u200Bjohn@example.com',
+    'john@example.com\uFEFF',
+    '\u2060 JOHN@example.com \u200D',
+  ]) {
+    assert.equal(normalizeEmail(input), 'john@example.com', `failed for ${JSON.stringify(input)}`);
   }
 });
 
-test('mealGroup puts everything else, including a blank, in Veg', () => {
-  // Only two groups exist, so the counts always sum to the number of claims —
-  // a third bucket would be a meal nobody can serve.
-  for (const meal of ['Veg Meal', 'veg', '', null, undefined, 'Anything Else']) {
-    assert.equal(mealGroup(meal), 'veg', `failed for ${JSON.stringify(meal)}`);
-  }
+test('normalizeHeader matches the registration headers however they are spaced or cased', () => {
+  assert.equal(normalizeHeader('Enrollment Number '), 'enrollmentnumber');
+  assert.equal(normalizeHeader('Enrollment\u00A0Number'), 'enrollmentnumber');
+  assert.equal(normalizeHeader('  ENROLLMENT number\t'), 'enrollmentnumber');
+  assert.equal(normalizeHeader('E-mail address'), 'emailaddress');
+  assert.equal(normalizeHeader('E-Mail\u00A0Address '), 'emailaddress');
+  assert.equal(normalizeHeader('Full Name'), 'fullname');
+  assert.equal(normalizeHeader(null), '');
 });
 
-test('mealGroupLabel renders exactly Jain and Veg', () => {
-  assert.equal(mealGroupLabel('jain'), 'Jain');
-  assert.equal(mealGroupLabel('veg'), 'Veg');
-});
-
-test('normalizeName ignores case and stray whitespace', () => {
-  const expected = 'rahul patel';
-  for (const typed of ['Rahul Patel', ' rahul patel ', 'RAHUL PATEL', 'Rahul   Patel']) {
-    assert.equal(normalizeName(typed), expected, `failed for ${JSON.stringify(typed)}`);
-  }
-});
-
-test('normalizeName keeps genuinely different names apart', () => {
-  assert.notEqual(normalizeName('Sam Patel'), normalizeName('Sam Patil'));
-  assert.equal(normalizeName(''), '');
-});
-
-test('project sheet headers resolve by meaning', () => {
-  const map = mapHeaders(['Timestamp', 'Team Name', 'Google Drive Link', 'Submission Status']);
-  assert.equal(map.timestamp, 0);
-  assert.equal(map.teamName, 1);
-  assert.equal(map.driveLink, 2);
-  assert.equal(map.submissionStatus, 3);
-});
-
-test('project sheet headers tolerate shorter spellings', () => {
-  const map = mapHeaders(['Team', 'Drive Link', 'Status']);
-  assert.equal(map.teamName, 0);
-  assert.equal(map.driveLink, 1);
-  assert.equal(map.submissionStatus, 2);
+test('text collapses non-breaking spaces inside a value', () => {
+  assert.equal(text('Data\u00A0\u00A0Science '), 'Data Science');
+  assert.equal(text('\u200BAIML'), 'AIML');
 });

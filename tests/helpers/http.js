@@ -56,23 +56,18 @@ export async function call(handler, requestOptions) {
 /**
  * Points the real route handlers at a fake spreadsheet.
  *
- * The handlers call checkInAttendee() without arguments, so the injection point
- * is the shared `googleSheets` object they ultimately reach. Swapping its three
- * methods keeps the entire production path — routing, validation, status
- * mapping, concurrency — under test, with only the network replaced.
+ * The handlers reach Google only through the shared `googleSheets` port, so
+ * swapping its methods keeps the entire production path — routing, auth,
+ * validation, parsing, caching, check-in locking and status mapping — under
+ * test, with only the network replaced.
  *
  * @returns {() => void} restores the real methods
  */
 export function installFakeSheets(fake) {
-  const original = {
-    getSheetValues: googleSheets.getSheetValues,
-    appendSheetRow: googleSheets.appendSheetRow,
-    updateSheetValues: googleSheets.updateSheetValues,
-  };
-
-  googleSheets.getSheetValues = fake.sheets.getSheetValues;
-  googleSheets.appendSheetRow = fake.sheets.appendSheetRow;
-  googleSheets.updateSheetValues = fake.sheets.updateSheetValues;
-
+  const original = { ...googleSheets };
+  for (const name of Object.keys(googleSheets)) {
+    if (typeof fake.sheets[name] !== 'function') throw new Error(`fake is missing ${name}`);
+    googleSheets[name] = fake.sheets[name];
+  }
   return () => Object.assign(googleSheets, original);
 }

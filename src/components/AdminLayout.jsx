@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Shuffle, FolderUp, LogOut, Menu, X } from 'lucide-react'
-import Brand from './Brand'
+import { LayoutDashboard, ScanLine, LogOut, Menu, X } from 'lucide-react'
 import { api } from '../services/api'
 
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/teams', label: 'Teams', icon: Shuffle, end: false },
-  { to: '/admin/projects', label: 'Project Uploads', icon: FolderUp, end: false },
+  { to: '/checkin', label: 'Check-in desk', icon: ScanLine, end: true },
 ]
 
 function navClass({ isActive }) {
@@ -50,8 +48,8 @@ export default function AdminLayout({ title, actions, children }) {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-white border-r border-slate-100 h-screen sticky top-0 px-4 py-6">
-        <div className="px-2 mb-8">
-          <Brand />
+        <div className="px-3 mb-8">
+          <AppName />
         </div>
         <nav className="flex-1 flex flex-col gap-1">{links}</nav>
         {logoutButton}
@@ -60,7 +58,7 @@ export default function AdminLayout({ title, actions, children }) {
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="md:hidden sticky top-0 z-20 bg-white border-b border-slate-100">
           <div className="flex items-center justify-between px-4 py-3">
-            <Brand />
+            <AppName />
             <button
               onClick={() => setMenuOpen((open) => !open)}
               className="p-2 -mr-2 text-slate-500"
@@ -86,6 +84,16 @@ export default function AdminLayout({ title, actions, children }) {
           {children}
         </main>
       </div>
+    </div>
+  )
+}
+
+/** A plain text name for the organizer area — no event or community logo. */
+function AppName() {
+  return (
+    <div>
+      <p className="text-base font-bold text-slate-900 leading-tight">Event Check-in</p>
+      <p className="text-xs text-slate-400">Organizer dashboard</p>
     </div>
   )
 }

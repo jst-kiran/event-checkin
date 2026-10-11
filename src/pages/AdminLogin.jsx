@@ -53,7 +53,7 @@ export default function AdminLogin() {
   }
 
   return (
-    <DeskLayout title="Organizer Sign-in" subtitle="Access the event dashboard.">
+    <DeskLayout title="Organizer Sign-in" subtitle="Sign in to see registrations and check-ins.">
       <DeskCard>
         <div className="flex flex-col items-center text-center">
           <div className="w-14 h-14 rounded-full bg-purple-50 border border-purple-100/80 flex items-center justify-center text-purple-600 mb-6 shadow-2xs">

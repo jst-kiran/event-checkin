@@ -5,7 +5,7 @@
  * does and does not buy:
  *
  *   IT DOES stop the cheap attacks this system actually faces — someone
- *   holding down a button, a script hammering /api/checkin from one machine, or
+ *   holding down a button, a script hammering /api/verify from one machine, or
  *   a burst of login guesses — and it protects the Google Sheets read quota,
  *   which is the resource that would actually take the desk down.
  *

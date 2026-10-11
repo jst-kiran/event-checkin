@@ -13,12 +13,12 @@ dist/
 service-account*.json
 credentials*.json
 
-# Raw registration exports used only to build the snapshot.
-# The generated data/registrations.json IS committed; the source export is not.
-data/*.csv
-data/*.xlsx
-data/raw/
-data/*.bak
+# Registration exports and local data contain personal information.
+# The app reads registrations live from Google Sheets — never commit a copy.
+# (data/ held the previous event's snapshot and backups; nothing reads it now.)
+*.csv
+*.xlsx
+data/
 
 # Vercel
 .vercel/
